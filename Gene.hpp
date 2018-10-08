@@ -32,54 +32,35 @@ using namespace std;
 class Gene
 {
 public:
+    bool masked;
     string id;
-    string id_full;
     string product;
     string sequence;
-    string type;
-    //string strain;
+    string colour;
     Contig *contig;
     Strain *strain;
-    //set<Strain*> strains;
-    double coverage;
-    //double gc;
+    //double coverage;
     double GC3s;
     int start;
     int end;
     bool orientation;
     bool paralog;
-    int copies;
+    //int copies;
     Group *group;
-    //vector<Group*> neighbours;
-    //vector<Gene*> neighbours;
-    //Gene* neighbours[2][SIZE_OF_NEIGHTBOURHOOD];
     Gene* neighbours[SIZE_OF_NEIGHTBOURHOOD];
-    //Group *neighbourhood[SIZE_OF_NEIGHTBOURHOOD];
     Gene *left_neighbour;
     Gene *right_neighbour;
-    vector<Relation*> relations;
-    vector<double> scoresMatrix;
+    //vector<Relation*> relations;
+    //vector<double> scoresMatrix;
     int length;
-    int votes;
-    int antiVotes;
-    bool excluded;
-    bool examined;
     double score;
-    int matchHistogram[SIZE_OF_NEIGHTBOURHOOD+1];
 
     unordered_map<Group*, double> groupscores;
     unordered_map<Gene*, double> scores;
-    unordered_map<Gene*, double> mirrorscores;
 
     void CompareNeighbours(Gene *gene);
-    vector<Group *> Match(Dataset *);
     double Match(Group *);
     double CalculateGC3s();
-    /*
-    ~Gene(void)
-    {
-        printf("Gene %s is being deconstructed.\n", id.c_str());
-    }*/
 };
 
 #endif /* Gene_hpp */

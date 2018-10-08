@@ -26,12 +26,10 @@ class Database;
 class Database
 {
 public:
-    //unordered_map<int64_t, double> similaritypool;
     unordered_map<string, Gene *> genepool;
     unordered_map<string, Strain *> strainpool;
     vector<pair<string, string>> contigcolours;
 
-    //unordered_map<string, Group *> grouppool2;
     vector<Strain*> strains;
     Database();
 };

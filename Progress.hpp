@@ -37,6 +37,7 @@ class Progress
             printf("%i%% ", progress * (100 / steps) );
             if (progress == steps)
                 printf("]\n");
+            fflush(stdout);            
         }
     }
     

@@ -27,16 +27,12 @@ class Contig;
 #include "Database.hpp"
 
 class Gene;
-//class unordered_map;
 using namespace std;
 
 class Strain
 {
 public:
     string id;
-    string id_full;
-    string id_alt;
-    string species;
 
     int bp;
     int ubp;
@@ -45,29 +41,12 @@ public:
     int tmRNA;
     int rRNA;
     double GC;
-    //vector<Gene *> genes;
     vector<Contig *> contigs;
     unordered_map<string, Contig *> contigpool;
     Strain();
 
     void Parse(string, unordered_map<string, Gene *> *);
     void ExportChartData(string, Database *);
-    void PrintContigs();
-    void ExportPTT(string);
-    /*
-     Gene *GetGene(string geneID)
-     {
-     vector<Gene>::iterator gene;
-     
-     for (gene = this->genes.begin(); gene != this->genes.end(); gene++)
-     {
-     if (gene->id == geneID)
-     return gene.base();
-     }
-     return NULL;
-     }*/
 };
-//void ParseStrain(Strain *strain, string INPUT_DIRECTORY);
-//void ParseStrain(Strain *strain);
 
 #endif /* Strain_hpp */

@@ -44,11 +44,10 @@ public:
     vector<Group*> groups;
     unordered_map<Gene *, Group *> grouppool;
     unordered_map<string, Group *> grouppool2;
-    //unordered_map<pair<Gene*,Gene*>, double> scorepool;
     Dataset(Database *);
-    void ScoreSynteny(string, Dataset *);
+    void ScoreSynteny(string);
     void ExportFNA(string);
-    void PrintStats();
+    //void PrintStats();
 };
 
 #endif /* Dataset_hpp */

@@ -55,7 +55,7 @@ public:
     int CountOrthologs();
     void Prune();
     bool HasStrain(Strain *);
-    void GenerateSyntenyMap(string);
+    void GenerateSyntenyChart(string);
     void GenerateSyntenyHistogram(string OUTPUT_DIRECTORY );
 
     vector<Group *> Split();

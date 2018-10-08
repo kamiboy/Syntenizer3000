@@ -65,61 +65,12 @@ double Group::SyntenizeSophisticated()
                 (*g1)->score += score;
                 (*g2)->score += score;
                 scoresum += score;
-                /*
-                double score1 = nw_align((*g1)->neighbours, (*g2)->neighbours, 1, false);
-                double score2 = nw_align((*g1)->neighbours, (*g2)->neighbours, 1, true);
-                //printf("score1: %f\n", score1);
-                //printf("score2: %f\n", score2);
-                count++;
-                scoresum += (score1 > score2) ? score1 : score2;
-                 */
             }
 
     syntenyScoreSophisticated = scoresum / (double)count;
     return syntenyScoreSophisticated;
 }
-/*
-double Group::SyntenizeNaive()
-{
-    int count = 0;
-    int scoresum = 0;
-    for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
-        for (auto g2 = g1+1; g2 != genes.end(); g2++)
-            if (*g1 != *g2)
-            {
-                count++;
-                for (int i = 0; i < (*g1)->neighbours.size(); i++)
-                    for (int j = 0; j < (*g2)->neighbours.size(); j++)
-                        if ((*g1)->neighbours[i]->group == (*g2)->neighbours[j]->group)
-                            scoresum++;
-            }
-    syntenyScoreNaive = (double)scoresum / (double)count;
-    
-    return syntenyScoreNaive;
 
-}
-*/
-/*
- double Group::SyntenizeNaive()
- {
- int count = 0;
- int scoresum = 0;
- for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
- for (auto g2 = g1+1; g2 != genes.end(); g2++)
- if (*g1 != *g2)
- {
- count++;
- for (int i = 0; i < (*g1)->neighbours.size(); i++)
- for (int j = 0; j < (*g2)->neighbours.size(); j++)
- if ((*g1)->neighbours[i]->group == (*g2)->neighbours[j]->group)
- scoresum++;
- }
- syntenyScoreNaive = (double)scoresum / (double)count;
- 
- return syntenyScoreNaive;
- 
- }
- */
 double Group::SyntenizeOld()
 {
     int count = 0;
@@ -182,28 +133,6 @@ double Group::SyntenizeAdjusted()
     syntenyScoreAdjusted = (double)scoresum / (double)count;
     
     return syntenyScoreAdjusted;
-    
-}
-
-double Group::SyntenizeTest()
-{
-    int count = 0;
-    double scoresum = 0.0f;
-    for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
-    {
-        for (auto g2 = g1+1; g2 != genes.end(); g2++)
-        {
-            if (*g1 != *g2)
-            {
-                count++;
-                scoresum += Score::Test(*g1, *g2);
-            }
-        }
-    }
-    
-    syntenyScoreTest = (double)scoresum / (double)count;
-    
-    return syntenyScoreTest;
     
 }
 
@@ -460,13 +389,7 @@ vector<Group *> Group::Split2()
     for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
     {
         printf("%s\t(%lu)\t[%.2f]\t{%i}\n", (*group)->id.c_str(), (*group)->genes.size(), (*group)->SyntenizeSophisticated(), (*group)->CountParalogs());
-        /*
-        for (auto gene = (*group)->genes.begin(); gene != (*group)->genes.end(); gene++)
-            printf(" %s", (*gene)->id_full.c_str());
-            //printf(" %s", (*gene)->strain->species.c_str());
 
-        printf("\n\n");
-         */
         printf("\n");
     }
     
@@ -566,13 +489,6 @@ vector<Group *> Group::Split3()
             //printf("orphan\n");
             orphans++;
         }
-        /*
-        for (auto gene = (*group)->genes.begin(); gene != (*group)->genes.end(); gene++)
-            printf(" %s", (*gene)->id_full.c_str());
-        //printf(" %s", (*gene)->strain->species.c_str());
-        
-        printf("\n\n");
-        */
     }
     printf(" - %i\n", orphans);
 
@@ -827,7 +743,7 @@ vector<Group *> Group::Split5()
         {
             this->orphans++;
             //printf("\t%s\t%lu", (*group)->genes[0]->strain->id_alt.c_str(), (*group)->genes[0]->contig->genes.size());
-            printf("\t%s\t%.2f", (*group)->genes[0]->strain->id_alt.c_str(), orthologs->SyntenizeAgainstGene((*group)->genes[0]));
+            printf("\t%s\t%.2f", (*group)->genes[0]->strain->id.c_str(), orthologs->SyntenizeAgainstGene((*group)->genes[0]));
         }
 
     this->orphans = orphans.size() - unorphaned;
@@ -866,85 +782,17 @@ vector<Group *> Group::Split()
                     bestparalog = *g1;
             }
         }
-        /*
-         try
-         {
-         auto v = strains.at((*gene)->strain);
-         v->push_back(*gene);
-         has_paralogs = true;
-         }
-         catch (const out_of_range & e)
-         {
-         strains[(*gene)->strain] = new vector<Gene*>;
-         strains[(*gene)->strain]->push_back(*gene);
-         }
-         */
     }
-    /*
-     if (has_paralogs)
-     {
-     vector <Gene*> paralogs;
-     vector <Gene*> homologs;
-     
-     for (auto strain = strains.begin(); strain != strains.end(); strain++)
-     {
-     if ((*strain).second->size() > 1)
-     paralogs.insert(paralogs.end(), (*strain).second->begin(), (*strain).second->end());
-     else
-     homologs.insert(homologs.end(), (*strain).second->begin(), (*strain).second->end());
-     }
-     
-     if (homologs.size() == 0)
-     {
-     pure_paralog_groups++;
-     return splitgroups;
-     }
-     
-     Strain *prev_strain = (*paralogs.begin())->strain;
-     
-     bool split = false;
-     int total_scoresum = 0;
-     int max_scoresum = 0;
-     for (auto g1 = paralogs.begin(); g1 != paralogs.end(); g1++)
-     {
-     double scoresum = 0.0f;
-     
-     for (auto g2 = homologs.begin(); g2 != homologs.end(); g2++)
-     scoresum += Score::Sophisticated(*g1, *g2);
-     
-     if (prev_strain != (*g1)->strain)
-     {
-     prev_strain = (*g1)->strain;
-     }
-     scoresum /= (double)homologs.size();
-     
-     for (auto g2 = paralogs.begin(); g2 != paralogs.end(); g2++)
-     if (g1 != g2 && scoresum > 0 && Score::Sophisticated(*g1, *g2) == 0)
-     split = true;
-     
-     total_scoresum += scoresum;
-     if (scoresum > max_scoresum)
-     max_scoresum = scoresum;
-     }
-     if (split)
-     split_groups++;
-     
-     if (max_scoresum > 0 && total_scoresum == max_scoresum)
-     unambiguous_groups++;
-     else
-     ambiguous_groups++;
-     }
-     */
+
     return splitgroups;
 }
 
-void Group::GenerateSyntenyMap(string OUTPUT_DIRECTORY )
+void Group::GenerateSyntenyChart(string OUTPUT_DIRECTORY )
 {
-    ofstream out( OUTPUT_DIRECTORY + id + ".syntenymap.csv", ifstream::out );
+    ofstream out( OUTPUT_DIRECTORY + id + "_synteny_chart.csv", ifstream::out );
 
-    printf("Generating Synteny map for %s\n", id.c_str());
+    //printf("Generating Synteny chart for %s\n", id.c_str());
     SyntenizeSophisticated();
-    //SyntenizeFast();
 
     set<Group *> groups;
     double bestscore = -1;
@@ -962,7 +810,7 @@ void Group::GenerateSyntenyMap(string OUTPUT_DIRECTORY )
         }
     }
 
-    printf("Best candidate %s: %.2f\n", candidate->id_full.c_str(), candidate->score );
+    //printf("Best candidate %s: %.2f\n", candidate->id.c_str(), candidate->score );
 
     unordered_map<Group *, int> groupcolours;
     int colour = 0;
@@ -982,15 +830,15 @@ void Group::GenerateSyntenyMap(string OUTPUT_DIRECTORY )
         Gene *bestmatch = NULL;
         for (auto gene = remaining.begin(); gene != remaining.end(); gene++)
         {
-            double score = Score::Sophisticated(candidate, *gene);
-            //double score = Score::Fast(candidate, *gene);
+            //double score = Score::Sophisticated(candidate, *gene);
+            double score = Score::Simple(candidate, *gene);
             if (bestmatch == NULL || score > bestscore)
             {
                 bestscore = score;
                 bestmatch = *gene;
             }
         }
-        printf("Best match %s: %.2f\n", bestmatch->id_full.c_str(), bestscore );
+        //printf("Best match %s: %.2f\n", bestmatch->id.c_str(), bestscore );
 
         sorted.push_back(bestmatch);
         remaining.erase(find(remaining.begin(), remaining.end(), bestmatch));
@@ -1000,22 +848,18 @@ void Group::GenerateSyntenyMap(string OUTPUT_DIRECTORY )
 
     for (auto gene = sorted.begin(); gene != sorted.end(); gene++)
     {
-        out << (*gene)->strain->id_alt;
+        out << (*gene)->strain->id;
         if (*gene != sorted.back())
             out << ';';
         else
-            //out << ";colour\n";
             out << "\n";
     }
 
     for (int i = 0; i < sorted.size(); i++)
-        //out << "0" << (i < sorted.size()-1 ? ";" : ";" + to_string(groupcolours.size()+1) + "\n");
         out << "0" << (i < sorted.size()-1 ? ";" : "\n");
     for (int i = 0; i < sorted.size(); i++)
-        //out << SIZE_OF_NEIGHTBOURHOOD+2 << (i < sorted.size()-1 ? ";" : ";" + to_string(groupcolours.size()+2) + "\n");
         out << SIZE_OF_NEIGHTBOURHOOD+2 << (i < sorted.size()-1 ? ";" : "\n");
     for (int i = 0; i < sorted.size(); i++)
-        //out << (SIZE_OF_NEIGHTBOURHOOD/2)+1 << (i < sorted.size()-1 ? ";" : ";" + to_string(groupcolours.size()+2) + "\n");
         out << (SIZE_OF_NEIGHTBOURHOOD/2)+1 << (i < sorted.size()-1 ? ";" : "\n");
 
     for (auto line = groupcolours.begin(); line != groupcolours.end(); line++)
@@ -1040,65 +884,14 @@ void Group::GenerateSyntenyMap(string OUTPUT_DIRECTORY )
                 out << ';';
             else
                 out << '\n';
-                //out << ';' << colour << '\n';
         }
-
-        /*
-        for (int s = 0; s < sorted.size()-1; s++)
-        {
-            Gene * g1 = sorted[s];
-            Gene * g2 = sorted[s+1];
-            
-            //if ((*g1)->group != NULL && (*g2)->group != NULL)
-            bool connects = false;
-
-            for (int i = 0; i < SIZE_OF_NEIGHTBOURHOOD; i++)
-                for (int j = 0; j < SIZE_OF_NEIGHTBOURHOOD; j++)
-                    if (g1->neighbours[i] != NULL && g2->neighbours[j] != NULL && g1->neighbours[i]->group == group && g2->neighbours[j]->group == group)
-                    {
-                        out << i+1 << ';' << j+1;
-                        connects = true;
-                    }
-            if (!connects)
-                out << ';';
-            
-            if (s < sorted.size()-2)
-                out << ';';
-            else
-                out << ';' << colour << '\n';
-        }
-        */
     }
     out.close();
-}
-
-void Group::GenerateSyntenyHistogram(string OUTPUT_DIRECTORY )
-{
- /*
-    Timer timer;
-    timer.Start();
-    printf("Generating group synteny histogram to %s:\n", OUTPUT_DIRECTORY.c_str());
-    
-    ofstream out( OUTPUT_DIRECTORY + id + ".syntenyhistogram.csv", ifstream::out );
-    out << "ID\n";
-    
-    for (auto strain = db->strains.begin(); strain != db->strains.end(); strain++)
-    {
-        out << (*strain)->id_full << '\n';
-        (*strain)->ExportGeneRelationship(db, OUTPUT_DIRECTORY);
-    }
-    out.close();
-    printf("Generating Synteny Maps took\t%i seconds\n\n", (int)timer.Elapsed());
- */
 }
 
 Group::Group(void)
 {
-    //id = "";
-    //genes.clear();
-    //scoresSum.clear();
     coorthologs = -1;
-    //discordant = false;
     algebraicConnectivity = NAN;
     syntenyScoreSophisticated = NAN;
     syntenyScoreOld = NAN;
@@ -1107,9 +900,3 @@ Group::Group(void)
     syntenyScoreFast = NAN;
     syntenyScoreTest = NAN;
 }
-/*
-Group::~Group(void)
-{
-    printf("Group %s is being deconstructed.\n", id.c_str());
-}
-*/

@@ -41,22 +41,16 @@ using namespace std;
 class Parse
 {
 public:
-    static int Groups(string INPUT_FILE, Dataset *dataset,  bool setGeneGroup = true);
-    static int ProteinOrtho(string INPUT_FILE, Dataset *dataset,  bool setGeneGroup = true);
+    //static int Groups(string INPUT_FILE, Dataset *dataset,  bool setGeneGroup = true);
+    //static int ProteinOrtho(string INPUT_FILE, Dataset *dataset,  bool setGeneGroup = true);
+    static int GeneGroups(string INPUT_FILE, Dataset *dataset);
     static int Strains(string INPUT_DIRECTORY, Database *database);
-    static void Scores(string INPUT_DIRECTORY, Dataset *dataset);
-    static void Genospecies(string, Database *database);
+    //static void Scores(string INPUT_DIRECTORY, Dataset *dataset);
     static void Sequences(string INPUT_DIRECTORY, Database *database);
-    static vector<Strain *> Dendro(string INPUT_FILE, Database *database);
-    static void Coverage(string INPUT_DIRECTORY, Database *database);
-    //static void Discordants(string INPUT_FILE,Dataset *dataset);
-    static void GroupTypes(string INPUT_FILE,Dataset *dataset);
-
-    static void Coverage2(string INPUT_FILE, string OUTPUT_FILE, Database *database);
-    
-    //static int fnaGroups0(string INPUT_DIRECTORY, Dataset *dataset);
-    //static int fnaGroups(string INPUT_DIRECTORY, Database *database);
-    //static void fnaGroups2(string INPUT_DIRECTORY, Database *database);
+    //static vector<Strain *> Dendro(string INPUT_FILE, Database *database);
+    //static void Coverage(string INPUT_DIRECTORY, Database *database);
+    static void GroupColours(string INPUT_FILE, Dataset *dataset);
+    static void ContigColours(string INPUT_FILE, Database *database);
 };
 
 #endif /* Parse_hpp */

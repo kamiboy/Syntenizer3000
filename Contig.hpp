@@ -26,11 +26,10 @@ class Contig
 {
 public:
     string id;
-    string id_full;
     int length;
     Strain *strain;
     vector<Gene*> genes;
-    vector<bool> orientations;
+    //vector<bool> orientations;
     //int *coverage;
     Contig();
 };

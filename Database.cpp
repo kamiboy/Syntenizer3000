@@ -10,11 +10,7 @@
 
 Database::Database()
 {
-    //similaritypool.clear();
     genepool.clear();
-    //grouppool.clear();
-    //grouppool2.clear();
-    //groups.clear();
     strains.clear();
     strainpool.clear();
 }
