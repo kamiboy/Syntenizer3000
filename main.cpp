@@ -991,7 +991,7 @@ int main(int argc, const char * argv[])
     return(0);
 }
 */
-int main1(int argc, const char * argv[])
+int main(int argc, const char * argv[])
 {
     Database *db = new Database();
     Dataset *dataset = new Dataset(db);
