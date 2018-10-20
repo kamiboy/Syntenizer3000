@@ -22,10 +22,10 @@ if (length(args)!=1)
       }
       filename_prefix <- strains$ID[s]
       pdf(paste(filename_prefix,'_chart.pdf',sep=""), width=50, height=50)
-      contigs = read.csv(file = paste(filename_prefix,'_contigs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F)
-      lanes = read.csv(file = paste(filename_prefix,'_lanes.csv',sep=""), dec=".", sep=";", stringsAsFactors = F)
-      paralogs = read.csv(file = paste(filename_prefix,'_paralogs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F)
-      
+      contigs = read.csv(file = paste(filename_prefix,'_contigs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
+      lanes = read.csv(file = paste(filename_prefix,'_lanes.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
+      paralogs = read.csv(file = paste(filename_prefix,'_paralogs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID1"="character", "ID1"="character"))
+
       circos.clear()
       circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.25, start.degree = 90, gap.degree = 0.5, track.margin=c(0,0))
       circos.initialize(factors = unique(contigs$ID), xlim = t(matrix(data = contigs$Bound, ncol = nrow(contigs)/2, nrow = 2)))
@@ -51,7 +51,7 @@ if (length(args)!=1)
         contig <- as.data.frame(lanes[ which(lanes$ID==contig.colours$ID[i]), ])
         circos.trackLines(contig$ID, contig$Location, contig$Synteny, col = as.character( contig.colours$Colour[i]), border = "black", lwd=0.25, area=TRUE)
       }
-      
+
       gene.colours <- unique(lanes$Colour)
       for (colour in gene.colours)
         if (!is.na(colour))
@@ -59,20 +59,24 @@ if (length(args)!=1)
           lines <- lanes[which(lanes$Colour == colour), ]
           circos.trackLines(lines$ID, lines$Location, lines$Synteny, col = colour, type = "h", lwd=1.5)
         }
-      
+
       ## GC3s plot
-      circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.20)
-      circos.trackPlotRegion(factors = as.vector.factor(unique(contigs$ID)), ylim=c(0,1))
-      
-      circos.trackLines(contigs$ID, contigs$Bound, rep(0.5, nrow(contigs)), col = "grey")
-      circos.trackLines(lanes$ID, lanes$Location, lanes$GC3s, col = "black", lwd=1, type="h", baseline=mean(lanes$GC3s))
-      
-      for (colour in gene.colours)
-        if (!is.na(colour))
-        {
-          lines <- lanes[which(lanes$Colour == colour), ]
-          circos.trackLines(lines$ID, lines$Location, lines$GC3s, col = colour, type = "h", lwd=1.5)
-        }
+      lanes.gc3 <- lanes[which(!is.na(lanes$GC3s)),] 
+      if (nrow(lanes.gc3) > 0)
+      {
+        circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.20)
+        circos.trackPlotRegion(factors = as.vector.factor(unique(contigs$ID)), ylim=c(0,1))
+        
+        circos.trackLines(contigs$ID, contigs$Bound, rep(0.5, nrow(contigs)), col = "grey")
+        circos.trackLines(lanes$ID, lanes$Location, lanes$GC3s, col = "black", lwd=1, type="h", baseline=mean(lanes$GC3s))
+        
+        for (colour in gene.colours)
+          if (!is.na(colour))
+          {
+            lines <- lanes[which(lanes$Colour == colour), ]
+            circos.trackLines(lines$ID, lines$Location, lines$GC3s, col = colour, type = "h", lwd=1.5)
+          }
+      }
       
       ## Abundance plot
       circos.par(cell.padding = c(0.025, 0, 0.0, 0), track.height = 0.10)
@@ -91,13 +95,17 @@ if (length(args)!=1)
         }
       
       uniquegenes <- lanes[ which(lanes$Abundance < 0), ]
-      for(i in 1:nrow(uniquegenes))
-        uniquegenes$Abundance[i] = -0.125
-      circos.trackLines(uniquegenes$ID, uniquegenes$Location, uniquegenes$Abundance, col = "red", type = "h", lwd=0.5)
+      if (nrow(uniquegenes) > 0)
+      {
+        for(i in 1:nrow(uniquegenes))
+          uniquegenes$Abundance[i] = -0.125
+        circos.trackLines(uniquegenes$ID, uniquegenes$Location, uniquegenes$Abundance, col = "red", type = "h", lwd=0.5)
+      }
       
       #Paralogs plot
-      for(i in 1:nrow(paralogs))
-        circos.link(paralogs$ID1[i], paralogs$Location1[i], paralogs$ID2[i], paralogs$Location2[i], col = rand_color(1), lwd=0.5)
+      if (nrow(paralogs) > 0)
+        for(i in 1:nrow(paralogs))
+          circos.link(paralogs$ID1[i], paralogs$Location1[i], as.character(paralogs$ID2[i]), paralogs$Location2[i], col = rand_color(1), lwd=0.5)
       
       dev.off()
     }
