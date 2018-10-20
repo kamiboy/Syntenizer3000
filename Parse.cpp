@@ -27,7 +27,7 @@ int Parse::GeneGroups(string INPUT_FILE, Dataset *dataset)
     ifstream input = ifstream( INPUT_FILE);
     if (!input.is_open())
     {
-        printf("Error: Could not open file %s\n", INPUT_FILE.c_str() );
+        printf("\nError: Could not open file %s\n", INPUT_FILE.c_str() );
         exit(1);
     }
 
@@ -109,7 +109,7 @@ int Parse::GeneGroups(string INPUT_FILE, Dataset *dataset)
                     }
                     catch (const out_of_range & e)
                     {
-                        printf("Error: Gene \"%s\" in Strain \"%s\" not found!\n", geneID.c_str(), strainID.c_str() );
+                        printf("\nError: Gene \"%s\" in Strain \"%s\" not found!\n", geneID.c_str(), strainID.c_str() );
                         exit(1);
                     }
                     gene->group = group;
@@ -188,7 +188,7 @@ int Parse::GeneGroups(string INPUT_FILE, Dataset *dataset)
                     }
                     catch (const out_of_range & e)
                     {
-                        printf("Error: Gene \"%s\" in Strain \"%s\" not found!\n", geneID.c_str(), strainID.c_str() );
+                        printf("\nError: Gene \"%s\" in Strain \"%s\" not found!\n", geneID.c_str(), strainID.c_str() );
                         exit(1);
                     }
                     gene->group = group;
@@ -260,12 +260,14 @@ int Parse::Strains(string INPUT_DIRECTORY, Database *database)
         database->strainpool[strain->id] = strain;
         strains++;
 
+        int linenr = 0;
         string line;
         unordered_map<string, int> regionsize;
         while (getline(input, line) && line != "##FASTA")
         {
             int counter = 0;
-            
+            linenr++;
+
             bool issequenceregion = false;
             if (type == TYPE_GFF)
             {
@@ -301,7 +303,6 @@ int Parse::Strains(string INPUT_DIRECTORY, Database *database)
 
                 if (items[2] == "tmRNA")
                     strain->tmRNA++;
-
                 if (items[2] == "rRNA")
                     strain->rRNA++;
                 if (items[2] == "tRNA")
@@ -311,12 +312,27 @@ int Parse::Strains(string INPUT_DIRECTORY, Database *database)
                 {
                     Gene *gene = new Gene;
                     size_t loc1 = items[8].find("ID=");
-                    size_t loc2 = items[8].find_first_of(';', loc1);
+                    if (loc1 == string::npos)
+                    {
+                        printf("\nError: No ID tag found on line %i of %s.\n", linenr, strainID.c_str());
+                        exit(1);
+                    }
+                    size_t loc2 = items[8].find_first_of(";\n", loc1);
 
-                    gene->id = items[8].substr(loc1+3, loc2-3);
+                    gene->id = items[8].substr(loc1+3, loc2-(loc1+3));
+                    //printf("strinID: %s\n", strain->id.c_str());
+                    //printf("geneID: %s\n", gene->id.c_str());
+                    //exit(0);
                     //gene->colour = "black";
-                    gene->product = items[8].substr(items[8].find("product=")+8, items[8].length());
-                    gene->masked = (gene->product.find("ransposase") != string::npos) || (gene->product.find("ntegrase") != string::npos);
+                    loc1 = items[8].find("product=");
+                    if (loc1 != string::npos)
+                    {
+                        loc2 = items[8].find_first_of(";\n", loc1);
+
+                        gene->product = items[8].substr(loc1+8, loc2-(loc1+8));
+                        gene->masked = (gene->product.find("ransposase") != string::npos) || (gene->product.find("ntegrase") != string::npos);
+                        //printf("Product: %s\n", gene->product.c_str());
+                    }
                     gene->start = stoi(items[3]);
                     gene->end = stoi(items[4]);
                     gene->length = abs(gene->start - gene->end)+1;
@@ -367,6 +383,9 @@ int Parse::Strains(string INPUT_DIRECTORY, Database *database)
                         strain->contigpool[contigID] = contig;
                     }
 
+                    if (regionsize.size() == 0 && gene->end > contig->length)
+                        contig->length = gene->end;
+
                     contig->genes.push_back(gene);
                     gene->contig = contig;
                     
@@ -389,16 +408,26 @@ int Parse::Strains(string INPUT_DIRECTORY, Database *database)
                 {
                     items.push_back(s);
                     counter++;
-                    if (counter >= 4)
-                        break;
+                    //if (counter >= 4)
+                    //    break;
                 }
+                /*
+                if (counter != 10)
+                {
+                    printf("counter %i\n", counter);
+                    printf("Error: Unexpected number of tab delimited items on a line inside: %s.tab\n", strainID.c_str());
+                    exit(1);
+                }
+                */
+                //if (items[4] == "OFF")
+                //    continue;
 
                 strain->CDS++;
                 Gene *gene = new Gene;
 
                 gene->id = items[0];
                 //TODO parse product if available
-                //gene->product = ?
+                gene->product = items[8];
                 gene->orientation = (items[1] == "1");
                 gene->paralog = false;
                 gene->start = stoi(items[2]);
@@ -413,10 +442,10 @@ int Parse::Strains(string INPUT_DIRECTORY, Database *database)
                 gene->score = 0.0f;
                 //gene->coverage = 0;
                 gene->GC3s = NAN;
-
                 string contigID = items[5];
                 Contig *contig;
-
+                
+                //
                 try
                 {
                     contig = strain->contigpool.at(contigID);
@@ -426,139 +455,154 @@ int Parse::Strains(string INPUT_DIRECTORY, Database *database)
                     contigs++;
                     contig = new Contig();
                     contig->id = contigID;
+                    
                     contig->strain = strain;
+                    /*
+                    if (regionsize.size() > 0)
+                    {
+                        contig->length = regionsize[items[0]];
+                        regionsize.erase(items[0]);
+                    }
+                     */
                     strain->contigs.push_back(contig);
                     strain->contigpool[contigID] = contig;
                 }
-
+                if (gene->end > contig->length)
+                    contig->length = gene->end;
+                
                 contig->genes.push_back(gene);
                 gene->contig = contig;
-
-                database->genepool[strain->id + "|" + gene->id] = gene;
+                
+                database->genepool[ strain->id + "|" + gene->id] = gene;
                 genes++;
             }
         }
         
-        if (line != "##FASTA")
+        if (type == TYPE_GFF)
         {
-            input.close();
-            //input = ifstream( INPUT_DIRECTORY + strain->id + ".fna");
-        }
-
-        if (input.is_open())
-        {
-            int A = 0;
-            int T = 0;
-            int C = 0;
-            int G = 0;
-            int N = 0;
-
-            Contig *contig = NULL;
-            string line;
-            string contigsequence;
-            while (getline(input, line))
+            if (line != "##FASTA")
             {
-                stringstream sstream(line);
+                input.close();
+                //input = ifstream( INPUT_DIRECTORY + strain->id + ".fna");
+            }
+            
+            if (input.is_open())
+            {
+                int A = 0;
+                int T = 0;
+                int C = 0;
+                int G = 0;
+                int N = 0;
                 
-                if (line.empty())
-                    continue;
-                
-                //if (line[0] == '>')
-                //    continue;
-                
-                if (line[0] == '>')
+                Contig *contig = NULL;
+                string line;
+                string contigsequence;
+                while (getline(input, line))
                 {
-                    if (contig != NULL)
+                    stringstream sstream(line);
+                    
+                    if (line.empty())
+                        continue;
+                    
+                    //if (line[0] == '>')
+                    //    continue;
+                    
+                    if (line[0] == '>')
                     {
-                        for (auto gene = contig->genes.begin(); gene != contig->genes.end(); gene++ )
+                        if (contig != NULL)
                         {
-                            (*gene)->sequence = contigsequence.substr((*gene)->start-1, (*gene)->length );
-                            if (!(*gene)->orientation)
+                            for (auto gene = contig->genes.begin(); gene != contig->genes.end(); gene++ )
                             {
-                                reverse((*gene)->sequence.begin(),(*gene)->sequence.end());
-                                for (int n = 0; n < (*gene)->sequence.size(); n++)
+                                (*gene)->sequence = contigsequence.substr((*gene)->start-1, (*gene)->length );
+                                if (!(*gene)->orientation)
                                 {
-                                    switch ((*gene)->sequence[n])
+                                    reverse((*gene)->sequence.begin(),(*gene)->sequence.end());
+                                    for (int n = 0; n < (*gene)->sequence.size(); n++)
                                     {
-                                        case 'A':
-                                            (*gene)->sequence[n] = 'T';
-                                        break;
-                                        case 'T':
-                                            (*gene)->sequence[n] = 'A';
-                                        break;
-                                        case 'C':
-                                            (*gene)->sequence[n] = 'G';
-                                        break;
-                                        case 'G':
-                                            (*gene)->sequence[n] = 'C';
-                                        break;
+                                        switch ((*gene)->sequence[n])
+                                        {
+                                            case 'A':
+                                                (*gene)->sequence[n] = 'T';
+                                                break;
+                                            case 'T':
+                                                (*gene)->sequence[n] = 'A';
+                                                break;
+                                            case 'C':
+                                                (*gene)->sequence[n] = 'G';
+                                                break;
+                                            case 'G':
+                                                (*gene)->sequence[n] = 'C';
+                                                break;
+                                        }
                                     }
                                 }
+                                
+                                (*gene)->GC3s = (*gene)->CalculateGC3s();
                             }
-
-                            (*gene)->GC3s = (*gene)->CalculateGC3s();
                         }
-                    }
-                    string contigID = line.substr(1);
-                    try
-                    {
-                        contig = strain->contigpool.at(contigID);
-                    }
-                    catch (const out_of_range & e)
-                    {
-                        //printf("Warning: Contig %s not found.\n", contigID.c_str());
-                        contig = NULL;
-                    }
-                    contigsequence.clear();
-                }
-                else contigsequence += line;
-                A += count(line.begin(), line.end(), 'A');
-                T += count(line.begin(), line.end(), 'T');
-                C += count(line.begin(), line.end(), 'C');
-                G += count(line.begin(), line.end(), 'G');
-                N += count(line.begin(), line.end(), 'N');
-            }
-            //if (A+T+C+G+N != strain->bp )
-            //    printf("Warning: In %s %i bp parsed from gff does not match %i bp parsed from fna. Difference is %i\n", strain->id.c_str(), strain->bp, A+T+C+G+N,strain->bp-(A+T+C+G));
-            if (contig != NULL)
-            {
-                for (auto gene = contig->genes.begin(); gene != contig->genes.end(); gene++ )
-                {
-                    (*gene)->sequence = contigsequence.substr((*gene)->start-1, (*gene)->length );
-                    if (!(*gene)->orientation)
-                    {
-                        reverse((*gene)->sequence.begin(),(*gene)->sequence.end());
-                        for (int n = 0; n < (*gene)->sequence.size(); n++)
+                        string contigID = line.substr(1);
+                        try
                         {
-                            switch ((*gene)->sequence[n])
+                            contig = strain->contigpool.at(contigID);
+                        }
+                        catch (const out_of_range & e)
+                        {
+                            //printf("Warning: Contig %s not found.\n", contigID.c_str());
+                            contig = NULL;
+                        }
+                        contigsequence.clear();
+                    }
+                    else contigsequence += line;
+                    A += count(line.begin(), line.end(), 'A');
+                    T += count(line.begin(), line.end(), 'T');
+                    C += count(line.begin(), line.end(), 'C');
+                    G += count(line.begin(), line.end(), 'G');
+                    N += count(line.begin(), line.end(), 'N');
+                }
+                //if (A+T+C+G+N != strain->bp )
+                //    printf("Warning: In %s %i bp parsed from gff does not match %i bp parsed from fna. Difference is %i\n", strain->id.c_str(), strain->bp, A+T+C+G+N,strain->bp-(A+T+C+G));
+                if (contig != NULL)
+                {
+                    for (auto gene = contig->genes.begin(); gene != contig->genes.end(); gene++ )
+                    {
+                        (*gene)->sequence = contigsequence.substr((*gene)->start-1, (*gene)->length );
+                        if (!(*gene)->orientation)
+                        {
+                            reverse((*gene)->sequence.begin(),(*gene)->sequence.end());
+                            for (int n = 0; n < (*gene)->sequence.size(); n++)
                             {
-                                case 'A':
-                                    (*gene)->sequence[n] = 'T';
-                                break;
-                                case 'T':
-                                    (*gene)->sequence[n] = 'A';
-                                break;
-                                case 'C':
-                                    (*gene)->sequence[n] = 'G';
-                                break;
-                                case 'G':
-                                    (*gene)->sequence[n] = 'C';
-                                break;
+                                switch ((*gene)->sequence[n])
+                                {
+                                    case 'A':
+                                        (*gene)->sequence[n] = 'T';
+                                        break;
+                                    case 'T':
+                                        (*gene)->sequence[n] = 'A';
+                                        break;
+                                    case 'C':
+                                        (*gene)->sequence[n] = 'G';
+                                        break;
+                                    case 'G':
+                                        (*gene)->sequence[n] = 'C';
+                                        break;
+                                }
                             }
                         }
+                        
+                        (*gene)->GC3s = (*gene)->CalculateGC3s();
                     }
-
-                    (*gene)->GC3s = (*gene)->CalculateGC3s();
                 }
+                strain->GC = double(G+C)/double(A+T+C+G);
+                strain->ubp = N;
+                input.close();
             }
-            strain->GC = double(G+C)/double(A+T+C+G);
-            strain->ubp = N;
-            input.close();
         }
-
+        
         //for (auto c = strain->contigs.begin(); c != strain->contigs.end(); c++)
         for (auto contig = strain->contigs.begin(); contig != strain->contigs.end(); contig++)
         {
+            if (TYPE_TAB)
+                strain->bp += (*contig)->length;
             //Contig *contig = (*c).second;
             Gene *previousGene = (*contig)->genes.back();
 
@@ -751,7 +795,7 @@ void Parse::Sequences(string INPUT_DIRECTORY, Database *database)
                 {
                     if (!gene->sequence.empty() && gene->sequence != sequence)
                     {
-                        printf("Error: Newly parsed sequence for gene \"%s|%s\" does not match previous.",  gene->strain->id.c_str(), gene->id.c_str());
+                        printf("\nError: Newly parsed sequence for gene \"%s|%s\" does not match previous.",  gene->strain->id.c_str(), gene->id.c_str());
                         exit(1);
                     }
                     gene->sequence = sequence;
@@ -788,7 +832,7 @@ void Parse::Sequences(string INPUT_DIRECTORY, Database *database)
         {
             if (!gene->sequence.empty() && gene->sequence != sequence)
             {
-                printf("Error: Newly parsed sequence for gene \"%s|%s\" does not match previous.",  gene->strain->id.c_str(), gene->id.c_str());
+                printf("\nError: Newly parsed sequence for gene \"%s|%s\" does not match previous.",  gene->strain->id.c_str(), gene->id.c_str());
                 exit(1);
             }
             gene->sequence = sequence;
@@ -812,7 +856,7 @@ void Parse::ContigColours(string INPUT_FILE, Database *database)
     ifstream input = ifstream( INPUT_FILE);
     if (!input.is_open())
     {
-        printf("Error: Could not open file %s\n", INPUT_FILE.c_str() );
+        printf("\nError: Could not open file %s\n", INPUT_FILE.c_str() );
         exit(1);
     }
     
@@ -939,7 +983,7 @@ void Parse::GroupColours(string INPUT_FILE, Dataset *dataset)
     ifstream input = ifstream( INPUT_FILE);
     if (!input.is_open())
     {
-        printf("Error: Could not open file %s\n", INPUT_FILE.c_str() );
+        printf("\nError: Could not open file %s\n", INPUT_FILE.c_str() );
         exit(1);
     }
     
@@ -973,7 +1017,7 @@ void Parse::GroupColours(string INPUT_FILE, Dataset *dataset)
 
         if (group == NULL)
         {
-            printf("Error: Gene group \"%s\" not found for colouring\n", items[0].c_str());
+            printf("\nError: Gene group \"%s\" not found for colouring\n", items[0].c_str());
             continue;
             //exit(1);
         }

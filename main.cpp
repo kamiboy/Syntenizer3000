@@ -30,10 +30,10 @@
 #include "Timer.hpp"
 
 #if defined(__APPLE__) || defined(__linux__) || defined(__unix__)
-//#include <sys/types.h>
-//#include <sys/stat.h>
-//#include <fcntl.h>
-//#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 using namespace std;
@@ -323,7 +323,7 @@ int SyntenyScoreSubset(Dataset *dataset, string INPUT_FILE)
     ifstream input = ifstream( INPUT_FILE);
     if (!input.is_open())
     {
-        printf("Error: Could not open file %s\n", INPUT_FILE.c_str() );
+        printf("\nError: Could not open file %s\n", INPUT_FILE.c_str() );
         exit(1);
     }
 
@@ -360,7 +360,10 @@ int SyntenyScoreSubset(Dataset *dataset, string INPUT_FILE)
         }
         
         if (group == NULL)
-            printf("Error: Group %s not \n", items[0].c_str());
+        {
+            printf("\nError: Group %s not found.\n", items[0].c_str());
+            exit(1);
+        }
         else
         {
             scoresumSophisticated += group->syntenyScoreSophisticated;
@@ -401,7 +404,7 @@ int SyntenizeGenePairs(Dataset *dataset, string INPUT_FILE, string OUTPUT_FILE)
     ifstream input = ifstream( INPUT_FILE);
     if (!input.is_open())
     {
-        printf("Error: Could not open file %s\n", INPUT_FILE.c_str() );
+        printf("\nError: Could not open file %s\n", INPUT_FILE.c_str() );
         exit(1);
     }
     
@@ -434,7 +437,7 @@ int SyntenizeGenePairs(Dataset *dataset, string INPUT_FILE, string OUTPUT_FILE)
         }
         catch (const out_of_range & e)
         {
-            printf("Error: Gene %s in Strain %s was not found.\n", items[1].c_str(), items[0].c_str());
+            printf("\nError: Gene %s in Strain %s was not found.\n", items[1].c_str(), items[0].c_str());
             exit(1);
         }
         Gene *g2;
@@ -444,7 +447,7 @@ int SyntenizeGenePairs(Dataset *dataset, string INPUT_FILE, string OUTPUT_FILE)
         }
         catch (const out_of_range & e)
         {
-            printf("Error: Gene %s in Strain %s was not found.\n", items[3].c_str(), items[2].c_str());
+            printf("\nError: Gene %s in Strain %s was not found.\n", items[3].c_str(), items[2].c_str());
             exit(1);
         }
 
@@ -658,7 +661,7 @@ void ExportStatistics(Dataset *dataset, string OUTPUT_FILE)
         {
             if ((*contig)->length < 0)
             {
-                printf("Error: %s had contig with unknown contig size!\n", (*strain)->id.c_str());
+                printf("\nError: Strain %s had contig %s with unknown size!\n", (*strain)->id.c_str(), (*contig)->id.c_str());
                 exit(1);
             }
                 
@@ -683,7 +686,6 @@ void ExportStatistics(Dataset *dataset, string OUTPUT_FILE)
             else
                 contigsize5000kplus+= (*contig)->length;
                 //contigsize5000kplus++;
-
             for (auto g1 = (*contig)->genes.begin(); g1 != (*contig)->genes.end(); g1++)
             {
                 if ((*g1)->group == NULL)
@@ -721,14 +723,19 @@ void ExportStatistics(Dataset *dataset, string OUTPUT_FILE)
         out << (*strain)->rRNA << ';';
         out << (*strain)->tmRNA << ';';
 
-        out << setprecision(1) << (contigsize10k / (double)(*strain)->bp)*100.0f << "%;";
-        out << setprecision(1) << (contigsize250k / (double)(*strain)->bp)*100.0f << "%;";
-        out << setprecision(1) << (contigsize500k / (double)(*strain)->bp)*100.0f << "%;";
-        out << setprecision(1) << (contigsize750k / (double)(*strain)->bp)*100.0f << "%;";
-        out << setprecision(1) << (contigsize1000k / (double)(*strain)->bp)*100.0f << "%;";
-        out << setprecision(1) << (contigsize5000k / (double)(*strain)->bp)*100.0f << "%;";
-        out << setprecision(1) << (contigsize5000kplus / (double)(*strain)->bp)*100.0f << "%\n";
-        
+        if ((*strain)->bp > 0)
+        {
+            out << setprecision(3) << (contigsize10k / (double)(*strain)->bp)*100.0f << "%;";
+            out << setprecision(3) << (contigsize250k / (double)(*strain)->bp)*100.0f << "%;";
+            out << setprecision(3) << (contigsize500k / (double)(*strain)->bp)*100.0f << "%;";
+            out << setprecision(3) << (contigsize750k / (double)(*strain)->bp)*100.0f << "%;";
+            out << setprecision(3) << (contigsize1000k / (double)(*strain)->bp)*100.0f << "%;";
+            out << setprecision(3) << (contigsize5000k / (double)(*strain)->bp)*100.0f << "%;";
+            out << setprecision(3) << (contigsize5000kplus / (double)(*strain)->bp)*100.0f << "%\n";
+        }
+        else
+            out << "NA;NA;NA;NA;NA;NA;NA\n";
+
         printf("*");
     }
     printf("]\n");
@@ -990,14 +997,15 @@ int main(int argc, const char * argv[])
 
     return(0);
 }
-*/
+/**/
+
 int main(int argc, const char * argv[])
 {
     Database *db = new Database();
     Dataset *dataset = new Dataset(db);
-    
+
     setbuf(stdout, NULL);
-    
+
     printf("\nSyntenizer 3000 version 1.0 by Camous Moslemi.\n");
 
     if (argc <= 1)
