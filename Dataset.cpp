@@ -37,7 +37,7 @@ void Dataset::ScoreSynteny(string OUTPUT_FILE)
     Progress p(groups.size()-1);
 
     //out << "Group\tConnectivity\tGenes\tStrains\tOrthologs\tParalogs\tChromosome Genes\tPlasmid Genes\tFragment Genes\tProtein Products\tSynteny Score Old\tSynteny Score Adjusted\tSynteny Score Fast\tSynteny Score Simple\tSynteny Score Sophisticated\n";
-    out << "Group;Connectivity;Genes;Strains;Orthologs;Paralogs;Chromosome Genes;Plasmid Genes;Fragment Genes;Protein Products;Synteny Score Simple;Synteny Score Sophisticated\n";
+    out << "Group;Connectivity;Genes;Strains;Orthologs;Paralogs;Chromosome Genes;Plasmid Genes;Fragment Genes;Protein Products;Synteny Score SIMPLE;Synteny Score SOPHISTICATED\n";
     for (auto group = groups.begin(); group != groups.end(); group++)
     {
         set<Group*> groupset;

@@ -818,7 +818,7 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
     printf("Classifying contig fragments into:\t%s\n", OUTPUT_FILE.c_str());
     
     ofstream out( OUTPUT_FILE, ifstream::out );
-    out << "Strain;Fragment;Genes;Chromosome;Plasmid;Chromosomal Synteny;Plasmid Synteny;Coverage;Syneny;Magnitude;Confidence;Classification;Metadata\n";
+    out << "Strain;Contig;Genes;Chromosome;Plasmid;Chromosomal Synteny;Plasmid Synteny;Coverage;Syneny;Magnitude;Confidence;Classification;Metadata\n";
 
     printf("Processing [");
     for (auto strain = db->strains.begin(); strain != db->strains.end(); strain++)
@@ -965,10 +965,12 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
 
             out << setprecision(2) << (chromosomalGene / totalGenes) << ';';
             out << setprecision(2) << (plasmidGene / totalGenes);
-            out << ';' << setprecision(2) << (chromosomalSynteny / chromosomalGene) << ';';
-            out << setprecision(2) << (plasmidSynteny / plasmidGene);
-            out << ';' << setprecision(2) << A << ';' << setprecision(2) << B << ';' << length;
-            out << ';' << confidence << ';';
+            out << ';' << setprecision(2) << (chromosomalGene > 0 ? (chromosomalSynteny / chromosomalGene) : 0.0f) << ';';
+            out << setprecision(2) << (plasmidGene > 0 ? (plasmidSynteny / plasmidGene) : 0.0f) << ';';
+            out << setprecision(2) << A << ';';
+            out << setprecision(2) << B << ';';
+            out << length << ';';
+            out << confidence << ';';
             out << classification << ';';
             out << metadata << '\n';
         }
@@ -1014,21 +1016,21 @@ int main(int argc, const char * argv[])
         printf("\nOPTIONS\n");
         printf("\t--gffdir=dir\n\t\tSet the directory where strain gff files are located.\n\n");
         printf("\t--outdir=dir\n\t\tSet the output directory for all generated files.\n\n");
-        printf("\t--genegroups=file\n\t\tSet the ProteinOrtho file specifying gene groups.\n\n");
-        printf("\t--contigcolours=file\n\t\tSet the file specifying the contig colours.\n\n");
-        printf("\t--ffndir=file\n\t\tSet the directory where gene sequence ffn files are located.\n\n");
-        printf("\t--syntenizegroups\n\t\tGenerate synteny score for gene groups.\n\n");
-        printf("\t--disambiguategroups\n\t\tGenerate gene groups devoid of paralogs.\n\n");
+        printf("\t--genegroups=file\n\t\tSet the file specifying gene groups.\n\n");
+        printf("\t--ffndir=dir\n\t\tSet the directory where gene sequence ffn files are located.\n\n");
         printf("\t--generatefnagroups\n\t\tGenerate gene group fna files.\n\n");
+        printf("\t--syntenizegroups\n\t\tGenerate synteny score for gene groups.\n\n");
+        printf("\t--syntenizegenepairs=file\n\t\tSet the file specifying gene pairs to be syntenized.\n\n");
+        printf("\t--disambiguategroups\n\t\tGenerate gene groups devoid of paralogs.\n\n");
+        printf("\t--presenceabsencematrix\n\t\tGenerate presence/absence matrix based on gene groups.\n\n");
+        printf("\t--gapitpresenceabsencematrix\n\t\tGenerate GAPIT formatted presence/absence matrix based on gene groups.\n\n");
+        printf("\t--generelationmatrix\n\t\tGenerate gene relation matrix based on gene groups.\n\n");
         printf("\t--generatestraincharts\n\t\tGenerate data files for strain chart rendering.\n\n");
         printf("\t--generatesyntenycharts\n\t\tGenerate data files for group synteny chart rendering.\n\n");
-        printf("\t--presenceabsencematrix\n\t\tGenerage presence/absence matrix based on gene groups.\n\n");
-        printf("\t--gapitpresenceabsencematrix\n\t\tGenerage GAPIT formatted presence/absence matrix based on gene groups.\n\n");
-        printf("\t--generelationmatrix\n\t\tGenerage gene relation matrix based on gene groups.\n\n");
+        printf("\t--contigcolours=file\n\t\tSet the file specifying the contig colours.\n\n");
         printf("\t--chromosomeidentifier=pattern\n\t\tSet the contig name character pattern that identifies a chromosomal contig.\n\n");
         printf("\t--plasmididentifier=pattern\n\t\tSet the contig name character pattern that identifies a plasmid contig.\n\n");
         printf("\t--fragmentidentifier=pattern\n\t\tSet the contig name character pattern that identifies an unclassified contig.\n\n");
-        printf("\t--syntenizegenepairs=file\n\t\tSet the file specifying gene pairs to be syntenized.\n\n");
         printf("\t--genegrouphighlightcolours=file\n\t\tSet the file specifying gene group highlight colours on strain charts.\n\n");
         printf("\t--classifyfragments\n\t\tGenerate fragment classifications based on synteny and gene group information.\n\n");
 

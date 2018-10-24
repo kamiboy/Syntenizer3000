@@ -1,5 +1,5 @@
 if(!require(circlize)){
-  install.packages("circlize")
+  install.packages("circlize", repos = "http://cloud.r-project.org/")
   library(circlize)
 }
 args = commandArgs(trailingOnly=TRUE)

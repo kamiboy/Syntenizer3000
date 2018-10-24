@@ -1,5 +1,5 @@
 if(!require(MASS)){
-  install.packages("MASS")
+  install.packages("MASS", repos = "http://cloud.r-project.org/")
   library(MASS)
 }
 args = commandArgs(trailingOnly=TRUE)
