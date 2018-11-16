@@ -52,7 +52,7 @@ void Strain::ExportChartData(string OUTPUT_DIRECTORY, Database *db)
     for (auto contig = contigs.begin(); contig != contigs.end(); contig++)
     {
         for (auto gene = (*contig)->genes.begin(); gene != (*contig)->genes.end(); gene++)
-            out1 << (*contig)->id << ";"<< (*gene)->start + ((*gene)->length / 2) << ';' << ((*gene)->group != NULL ? (*gene)->group->SyntenizeAgainstGene((*gene))/(double)SIZE_OF_NEIGHTBOURHOOD : 0.0f) << ';' << ((*gene)->group != NULL ? (double)(*gene)->group->CountUniqueStrains() / (double)db->strains.size() : -0.01f / (double)db->strains.size()) << ';' /*<< (*gene)->coverage << ';'*/ << (*gene)->GC3s << ';' << ((*gene)->colour.empty() ? "NA" : (*gene)->colour) << '\n';
+            out1 << (*contig)->id << ";"<< (*gene)->start + ((*gene)->length / 2) << ';' << ((*gene)->group != NULL ? (*gene)->group->SyntenizeAgainstGene((*gene))/(double)SIZE_OF_NEIGHTBOURHOOD : 0.0f) << ';' << ((*gene)->group != NULL ? (double)(*gene)->group->CountUniqueStrains() / (double)db->strains.size() : 0.0f / (double)db->strains.size()) << ';' /*<< (*gene)->coverage << ';'*/ << (*gene)->GC3s << ';' << ((*gene)->colour.empty() ? "NA" : (*gene)->colour) << '\n';
             //out1 << (*contig)->id << ";"<< (*gene)->start + ((*gene)->length / 2) << ';' << 0.0f << ';' << ((*gene)->group != NULL ? (double)(*gene)->group->CountUniqueStrains() / (double)db->strains.size() : -0.01f / (double)db->strains.size()) << ';' << (*gene)->coverage << ';' << (*gene)->GC3s << ';' << (*gene)->type << '\n';
     }
     out1.close();

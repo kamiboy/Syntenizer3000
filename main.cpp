@@ -638,7 +638,7 @@ void ExportStatistics(Dataset *dataset, string OUTPUT_FILE)
     
     ofstream out( OUTPUT_FILE, ifstream::out );
 
-    out << "Strain;Contigs;bp;ubp;GC;CDS;Orthologs;Paralogs;Uniques;tRNA;rRNA;tmRNA;0-10k;10-250k;250k-500k;500k-750k;750k-1000k;1000-5000k;>5000k\n";
+    out << "Strain ID;Contigs;bp;ubp;GC;CDS;Orthologs;Paralogs;Uniques;tRNA;rRNA;tmRNA;0-10k;10-250k;250k-500k;500k-750k;750k-1000k;1000-5000k;>5000k\n";
 
     printf("Processing [");
     //int counter = 0;
@@ -810,7 +810,7 @@ void ExportGeneScores(Dataset *dataset, string OUTPUT_FILE)
     out.close();
     printf("Exporting gene scores took:\t%i seconds\n\n", (int)timer.Elapsed());
 }
-
+/*
 void ClassifyFragments(string OUTPUT_FILE, Database *db)
 {
     Timer timer;
@@ -818,14 +818,14 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
     printf("Classifying contig fragments into:\t%s\n", OUTPUT_FILE.c_str());
     
     ofstream out( OUTPUT_FILE, ifstream::out );
-    out << "Strain;Contig;Genes;Chromosome;Plasmid;Chromosomal Synteny;Plasmid Synteny;Coverage;Syneny;Magnitude;Confidence;Classification;Metadata\n";
+    out << "Strain;Contig;Genes;Chromosomal Percentage;Plasmid Percentage;Chromosomal Synteny;Plasmid Synteny;Coverage;Syneny;Magnitude;Confidence;Classification;Metadata\n";
 
     printf("Processing [");
     for (auto strain = db->strains.begin(); strain != db->strains.end(); strain++)
     {
         for (auto contig = (*strain)->contigs.begin(); contig != (*strain)->contigs.end(); contig++)
         {
-            if (/*(*contig)->id_full.find("fragment") != string::npos ||*/ (*contig)->genes.size() < 10)
+            if ((*contig)->genes.size() < 10)
                 continue;
             out << (*strain)->id << ';' << (*contig)->id << ';' << (*contig)->genes.size() <<';';
             double chromosomalGene = 0;
@@ -873,12 +873,7 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
                     }
                 }
             }
-            /*
-            double A1 = (chromosomalGene / totalGenes);
-            double A2 = (chromosomalSynteny / chromosomalGene)/40;
-            double B1 = -(plasmidGene / totalGenes);
-            double B2 = -(plasmidSynteny / plasmidGene)/40;
-             */
+
             double A = 0;
             double B = 0;
 
@@ -888,12 +883,7 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
                 B += (chromosomalSynteny / chromosomalGene)/SIZE_OF_NEIGHTBOURHOOD;
             if (plasmidGene > 0)
                 B -= (plasmidSynteny / plasmidGene)/SIZE_OF_NEIGHTBOURHOOD;
-            /*
-            if (abs(A) < 0.1 )
-                A = 0;
-            if (abs(B) < 0.1 )
-                B = 0;
-            */
+
             double length = 0;
 
             if ((A <= 0 && B <= 0) || (A <= -0.2 && B <= 0.1) || (A <= 0.1 && B <= -0.2))
@@ -943,15 +933,8 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
                             if (score >= 0.7)
                                 confidence = "IDEAL";
                         }
-                        /*
-                         plasmidTypeSynteny[i] /= plasmidTypeCount[i];
-                        if (plasmidTypeSynteny[i] > bestSynteny)
-                        {
-                            bestSynteny = plasmidTypeSynteny[i];
-                            bestPlasmid = i;
-                        }
-                         */
-                        metadata += settings.PLASMID_IDENTIFIER + to_string(i) + "|" + to_string(int(plasmidTypeCount[i])) + "|" + to_string(int(plasmidTypeSynteny[i])) + "|" + to_string(score) +/* "|(" + to_string(plasmidTypeSynteny[i] / SIZE_OF_NEIGHTBOURHOOD) + "|" + to_string(plasmidTypeCount[i] / plasmidTypeGenes) + ")" + */" ";
+
+                        metadata += settings.PLASMID_IDENTIFIER + to_string(i) + "|" + to_string(int(plasmidTypeCount[i])) + "|" + to_string(int(plasmidTypeSynteny[i])) + "|" + to_string(score) +" ";
                     }
                 }
 
@@ -960,8 +943,6 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
                 else
                     classification = settings.PLASMID_IDENTIFIER + to_string(bestPlasmid);
             }
-            
-            //printf(".");
 
             out << setprecision(2) << (chromosomalGene / totalGenes) << ';';
             out << setprecision(2) << (plasmidGene / totalGenes);
@@ -970,6 +951,162 @@ void ClassifyFragments(string OUTPUT_FILE, Database *db)
             out << setprecision(2) << A << ';';
             out << setprecision(2) << B << ';';
             out << length << ';';
+            out << confidence << ';';
+            out << classification << ';';
+            out << metadata << '\n';
+        }
+        printf("*");
+    }
+    printf("]\n");
+    out.close();
+    printf("Classifying contig fragments took:\t%i seconds\n\n", (int)timer.Elapsed());
+}
+*/
+
+void ClassifyFragments(string OUTPUT_FILE, Database *db)
+{
+    Timer timer;
+    timer.Start();
+    printf("Classifying contig fragments into:\t%s\n", OUTPUT_FILE.c_str());
+
+    ofstream out( OUTPUT_FILE, ifstream::out );
+    out << "Strain;Contig;Genes;Chromosomal Percentage;Plasmid Percentage;Chromosomal Synteny;Plasmid Synteny;Coverage;Syneny;Magnitude;Confidence;Classification;Metadata\n";
+
+    printf("Processing [");
+    for (auto strain = db->strains.begin(); strain != db->strains.end(); strain++)
+    {
+        for (auto contig = (*strain)->contigs.begin(); contig != (*strain)->contigs.end(); contig++)
+        {
+            if (/*(*contig)->id_full.find("fragment") != string::npos ||*/ (*contig)->genes.size() < 10)
+                continue;
+            out << (*strain)->id << ';' << (*contig)->id << ';' << (*contig)->genes.size() <<';';
+            double chromosomalGene = 0;
+            double plasmidGene = 0;
+            double totalGenes = 0;
+
+            double chromosomalSynteny = 0;
+            double plasmidSynteny = 0;
+            double plasmidTypeSynteny[100] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+            double plasmidTypeCount[100] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+            double plasmidTypeGenes = 0;
+
+            for (auto g1 = (*contig)->genes.begin(); g1 != (*contig)->genes.end(); g1++)
+            {
+                if ((*g1)->group == NULL || (*g1)->masked)
+                    continue;
+
+                for (auto g2 = (*g1)->group->genes.begin(); g2 != (*g1)->group->genes.end(); g2++)
+                {
+                    totalGenes++;
+                    if ((*g2)->contig->id.find(settings.CHROMOSOME_IDENTIFIER) != string::npos)
+                    {
+                        chromosomalGene++;
+                        //chromosomalSynteny += Score::Sophisticated(*g1, *g2);
+                        chromosomalSynteny += Score::Simple(*g1, *g2);
+                    }
+                    if ((*g2)->contig->id.find(settings.PLASMID_IDENTIFIER) != string::npos)
+                    {
+                        //double score = Score::Sophisticated(*g1, *g2);
+                        double score = Score::Simple(*g1, *g2);
+                        int type;
+                        size_t loc;
+                        string id = (*g2)->contig->id;
+                        while ((loc = id.find(settings.PLASMID_IDENTIFIER)) != string::npos)
+                        {
+                            try
+                            {
+                                type = stoi(id.substr(loc+2, 2));
+                            }
+                            catch (exception e)
+                            {
+                                printf("\nError: Plasmid ID \"%s\" does not confirm to expected format of an identifier character pattern followed by two digits.\n", id.c_str());
+                                exit(1);
+
+                            }
+                            plasmidTypeSynteny[type] += score;
+                            plasmidTypeCount[type]++;
+                            plasmidTypeGenes++;
+                            id = id.substr(loc+4);
+                        }
+
+                        plasmidSynteny += score;
+                        plasmidGene++;
+                    }
+                }
+            }
+
+            double A = 0;
+            double B = 0;
+
+            if (totalGenes > 0)
+                A = (chromosomalGene / totalGenes) - (plasmidGene / totalGenes);
+            if (chromosomalGene > 0)
+                B += (chromosomalSynteny / chromosomalGene)/SIZE_OF_NEIGHTBOURHOOD;
+            if (plasmidGene > 0)
+                B -= (plasmidSynteny / plasmidGene)/SIZE_OF_NEIGHTBOURHOOD;
+
+            double magnitude = A + B;
+
+            string confidence = "NA";
+
+            if (abs(magnitude) >= 0.4)
+                confidence = "LOW";
+            if (abs(magnitude) >= 0.8)
+                confidence = "MEDIUM";
+            if (abs(magnitude) >= 1.2)
+                confidence = "HIGH";
+            if (abs(magnitude) >= 1.6)
+                confidence = "IDEAL";
+
+            string classification = "Ambiguous";
+            string metadata;
+
+            if (magnitude >= 0.4)
+                classification = "Chromosome";
+
+            if (magnitude <= -0.4)
+            {
+                //double bestSynteny = -1;
+                double bestMatchScore = -1;
+                int bestPlasmid = -1;
+                for (int i = 0; i < 100; i++)
+                {
+                    if (plasmidTypeCount[i] > 0)
+                    {
+                        plasmidTypeSynteny[i] /= plasmidTypeCount[i];
+                        double score = (plasmidTypeSynteny[i] / SIZE_OF_NEIGHTBOURHOOD) * 0.75 + (plasmidTypeCount[i] / plasmidTypeGenes) * 0.25;
+                        if (score > bestMatchScore)
+                        {
+                            bestMatchScore = score;
+                            bestPlasmid = i;
+
+                            if (score >= 0.0)
+                                confidence = "LOW";
+                            if (score >= 0.3)
+                                confidence = "MEDIUM";
+                            if (score >= 0.5)
+                                confidence = "HIGH";
+                            if (score >= 0.7)
+                                confidence = "IDEAL";
+                        }
+
+                        metadata += settings.PLASMID_IDENTIFIER + to_string(i) + "|" + to_string(int(plasmidTypeCount[i])) + "|" + to_string(int(plasmidTypeSynteny[i])) + "|" + to_string(score) +" ";
+                    }
+                }
+
+                if (bestPlasmid < 10)
+                    classification = settings.PLASMID_IDENTIFIER + "0" + to_string(bestPlasmid);
+                else
+                    classification = settings.PLASMID_IDENTIFIER + to_string(bestPlasmid);
+            }
+
+            out << setprecision(2) << (chromosomalGene / totalGenes) << ';';
+            out << setprecision(2) << (plasmidGene / totalGenes);
+            out << ';' << setprecision(2) << (chromosomalGene > 0 ? (chromosomalSynteny / chromosomalGene) / SIZE_OF_NEIGHTBOURHOOD : 0.0f) << ';';
+            out << setprecision(2) << (plasmidGene > 0 ? (plasmidSynteny / plasmidGene) / SIZE_OF_NEIGHTBOURHOOD : 0.0f) << ';';
+            out << setprecision(2) << A << ';';
+            out << setprecision(2) << B << ';';
+            out << magnitude << ';';
             out << confidence << ';';
             out << classification << ';';
             out << metadata << '\n';
@@ -999,7 +1136,7 @@ int main(int argc, const char * argv[])
 
     return(0);
 }
-/**/
+*/
 
 int main(int argc, const char * argv[])
 {
@@ -1022,9 +1159,9 @@ int main(int argc, const char * argv[])
         printf("\t--syntenizegroups\n\t\tGenerate synteny score for gene groups.\n\n");
         printf("\t--syntenizegenepairs=file\n\t\tSet the file specifying gene pairs to be syntenized.\n\n");
         printf("\t--disambiguategroups\n\t\tGenerate gene groups devoid of paralogs.\n\n");
-        printf("\t--presenceabsencematrix\n\t\tGenerate presence/absence matrix based on gene groups.\n\n");
-        printf("\t--gapitpresenceabsencematrix\n\t\tGenerate GAPIT formatted presence/absence matrix based on gene groups.\n\n");
-        printf("\t--generelationmatrix\n\t\tGenerate gene relation matrix based on gene groups.\n\n");
+        //printf("\t--presenceabsencematrix\n\t\tGenerate presence/absence matrix based on gene groups.\n\n");
+        //printf("\t--gapitpresenceabsencematrix\n\t\tGenerate GAPIT formatted presence/absence matrix based on gene groups.\n\n");
+        //printf("\t--generelationmatrix\n\t\tGenerate gene relation matrix based on gene groups.\n\n");
         printf("\t--generatestraincharts\n\t\tGenerate data files for strain chart rendering.\n\n");
         printf("\t--generatesyntenycharts\n\t\tGenerate data files for group synteny chart rendering.\n\n");
         printf("\t--contigcolours=file\n\t\tSet the file specifying the contig colours.\n\n");
@@ -1065,11 +1202,11 @@ int main(int argc, const char * argv[])
                 settings.generateStrainCharts = true;
             if ((loc = argument.find("--generatesyntenycharts")) != string::npos)
                 settings.generateSyntenyCharts = true;
-            if ((loc = argument.find("--presenceabsencematrix")) != string::npos)
+            //if ((loc = argument.find("--presenceabsencematrix")) != string::npos)
                 settings.generatePresenceAbsenceMatrix = true;
-            if ((loc = argument.find("--gapitpresenceabsencematrix")) != string::npos)
+            //if ((loc = argument.find("--gapitpresenceabsencematrix")) != string::npos)
                 settings.generateGAPIT = true;
-            if ((loc = argument.find("--generelationmatrix")) != string::npos)
+            //if ((loc = argument.find("--generelationmatrix")) != string::npos)
                 settings.generateGRM = true;
             if ((loc = argument.find("--chromosomeidentifier=")) != string::npos)
                 settings.CHROMOSOME_IDENTIFIER = argument.substr(argument.find("=")+1);
@@ -1105,11 +1242,6 @@ int main(int argc, const char * argv[])
         settings.OUTPUT_DIRECTORY += delimiter;
     if (!settings.SEQUENCE_DIRECTORY.empty() && settings.SEQUENCE_DIRECTORY[settings.SEQUENCE_DIRECTORY.size()-1] != delimiter)
         settings.SEQUENCE_DIRECTORY += delimiter;
-
-    //printf("GFF directory:\t%s\n", settings.GFF_DIRECTORY.c_str());
-    //printf("Output directory:\t%s\n", settings.OUTPUT_DIRECTORY.c_str());
-    //printf("Sequences directory:\t%s\n", settings.SEQUENCE_DIRECTORY.c_str());
-    //exit(0);
 
     Timer timer;
     timer.Start();
@@ -1176,7 +1308,7 @@ int main(int argc, const char * argv[])
                 SyntenizeGenePairs(dataset, settings.GENE_PAIR_FILE, settings.OUTPUT_DIRECTORY + "gene_pairs_synteny.csv");
                 //printf("Done scoring synteny for gene pairs.\n\n");
             }
-            if (settings.classifyFragments)
+            if (settings.classifyFragments && !settings.CHROMOSOME_IDENTIFIER.empty() && !settings.PLASMID_IDENTIFIER.empty())
             {
                 //printf("Attempting to classify fragment contigs:\n");
                 ClassifyFragments(settings.OUTPUT_DIRECTORY + "classified_fragments.csv", db);

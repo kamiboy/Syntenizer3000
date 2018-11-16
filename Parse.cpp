@@ -119,6 +119,12 @@ int Parse::GeneGroups(string INPUT_FILE, Dataset *dataset)
                     genes++;
                 }
             }
+
+            if (group->genes.size() <= 1)
+            {
+                printf("\nError: Group \"%s\" does not have the minimum 2 genes required number of members.\n", group->id.c_str());
+                exit(1);
+            }
             
             if (group->coorthologs > 0)
                 coorthologousgroups++;
@@ -199,6 +205,11 @@ int Parse::GeneGroups(string INPUT_FILE, Dataset *dataset)
                     strains.push_back(gene->strain);
                     genes++;
                 }
+            }
+            if (group->genes.size() <= 1)
+            {
+                printf("\nError: Group \"%s\" does not have the minimum 2 genes required number of members.\n", group->id.c_str());
+                exit(1);
             }
             groups++;
             group->coorthologs = group->genes.size()-strainset.size();

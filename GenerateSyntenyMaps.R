@@ -16,13 +16,15 @@ if (length(args)!=1)
     print("Rendering synteny maps, please wait...")
     progress <- -1
     for (group in 1:length(groups)){
-      map = read.csv(file = paste(groups[group], "_synteny_chart.csv", sep=""), dec=",", sep=";", header=T, check.names = F)
+      filename <- paste(groups[group], "_synteny_chart.csv", sep="")
+      map = read.csv(file = filename, dec=",", sep=";", header=T, check.names = F)
       strains = colnames(map)
       
       pdf(paste(groups[group], "_synteny_chart.pdf", sep=""), width=15, height=15)
       par(las=2, cex=0.5, lwd=0.25)
       parcoord(map, lty = 1, main=groups[group], col= c("#00000000", "#00000000", "black", sample(rainbow(nrow(map)-3))))
       dev.off()
+      file.remove(filename)
       
       if (progress != as.integer( (group*10)/length(groups)))
       {
