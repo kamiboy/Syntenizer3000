@@ -24,17 +24,16 @@ if (length(args)!=1)
       pdf(paste(filename_prefix,'_chart.pdf',sep=""), width=50, height=50)
       
       filename.contigs <- paste(filename_prefix,'_contigs.csv',sep="")
-      filename.lanes <- paste(filename_prefix,'_lanes.csv',sep="")
-      filename.paralogs <- paste(filename_prefix,'_paralogs.csv',sep="")
-      contigs = read.csv(file = filename.contigs, dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
-      lanes = read.csv(file = filename.lanes, dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
-      paralogs = read.csv(file = filename.paralogs, dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID1"="character", "ID2"="character"))
+      pdf(paste(filename_prefix,'_chart.pdf',sep=""), width=50, height=50)
+      contigs = read.csv(file = paste(filename_prefix,'_contigs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
+      lanes = read.csv(file = paste(filename_prefix,'_lanes.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
+      paralogs = read.csv(file = paste(filename_prefix,'_paralogs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID1"="character", "ID1"="character"))
       
       #contigs <- contigs[order(contigs$ID, contigs$Location),]
       lanes <- lanes[order(lanes$ID, lanes$Location),]
       
       circos.clear()
-      circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.25, start.degree = 90, gap.degree = 0.5, track.margin=c(0,0))
+      circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.25, start.degree = 90, gap.degree = 0.5, track.margin=c(0,0.01))
       circos.initialize(factors = unique(contigs$ID), xlim = t(matrix(data = contigs$Bound, ncol = nrow(contigs)/2, nrow = 2)))
       circos.trackPlotRegion(factors = as.vector.factor(unique(contigs$ID)), ylim=c(0,1), panel.fun = function(x, y) {
         theta <- circlize(CELL_META$xcenter, 1.3)[1, 1] %% 360
@@ -100,9 +99,8 @@ if (length(args)!=1)
           lines <- lanes[which(lanes$Colour == colour), ]
           circos.trackLines(lines$ID, lines$Location, lines$Abundance, col = colour, type = "h", lwd=1.5)
         }
-      
       ## Unique genes plot
-      circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.015)
+      circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.015, track.margin=c(0,0))
       circos.trackPlotRegion(factors = as.vector.factor(unique(contigs$ID)), ylim=c(0,1))
       for(i in 1:nrow(contig.colours))
         circos.updatePlotRegion(sector.index = contig.colours$ID[i], bg.col = "grey")
@@ -110,7 +108,7 @@ if (length(args)!=1)
       uniquegenes <- lanes[ which(lanes$Abundance == 0), ]
       if (nrow(uniquegenes) > 0)
         circos.trackLines(uniquegenes$ID, uniquegenes$Location, matrix(data = 1, nrow = nrow(uniquegenes), ncol = 1),  col = "red", type = "h", lwd=0.5)
-      
+  
       #Paralogs plot
       if (nrow(paralogs) > 0)
         for(i in 1:nrow(paralogs))
