@@ -24,14 +24,14 @@ if (length(args)!=1)
       pdf(paste(filename_prefix,'_chart.pdf',sep=""), width=50, height=50)
       
       filename.contigs <- paste(filename_prefix,'_contigs.csv',sep="")
-      pdf(paste(filename_prefix,'_chart.pdf',sep=""), width=50, height=50)
-      contigs = read.csv(file = paste(filename_prefix,'_contigs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
-      lanes = read.csv(file = paste(filename_prefix,'_lanes.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
-      paralogs = read.csv(file = paste(filename_prefix,'_paralogs.csv',sep=""), dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID1"="character", "ID1"="character"))
-      
-      #contigs <- contigs[order(contigs$ID, contigs$Location),]
+      filename.lanes <- paste(filename_prefix,'_lanes.csv',sep="")
+      filename.paralogs <- paste(filename_prefix,'_paralogs.csv',sep="")
+      contigs = read.csv(file = filename.contigs, dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
+      lanes = read.csv(file = filename.lanes, dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID"="character"))
+      paralogs = read.csv(file = filename.paralogs, dec=".", sep=";", stringsAsFactors = F, colClasses = c("ID1"="character", "ID2"="character"))
+
       lanes <- lanes[order(lanes$ID, lanes$Location),]
-      
+
       circos.clear()
       circos.par(cell.padding = c(0.0, 0, 0.0, 0), track.height = 0.25, start.degree = 90, gap.degree = 0.5, track.margin=c(0,0.01))
       circos.initialize(factors = unique(contigs$ID), xlim = t(matrix(data = contigs$Bound, ncol = nrow(contigs)/2, nrow = 2)))
