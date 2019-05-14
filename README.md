@@ -143,3 +143,6 @@ Magnitude - A number between -2 and 2 calculated as +/- Coverage + Synteny. Cons
 Confidence - The confidence attached to the contig classification. This can be IDEAL / HIGH / MEDIUM / LOW / NA .  
 Classification - The classification of this contig, which can either be Chromosome, the plasmid identifier followed by two digit type or Ambiguous. Consult the manual for an explanation of this parameter.
 Metadata - Extra information on regarding the plasmid classification calculations. Consult the manual for an explanation of this parameter.
+
+--declustergroups / --declustergroups=threshold
+generate file declustered_gene_groups.csv with groups split into syntenic subgroups based on provided threshold or the default synteny threshold of 0. Consult manual for an explanation of the declustering process.
