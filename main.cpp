@@ -481,7 +481,7 @@ void Disambiguate(string OUTPUT_FILE, Dataset *dataset)
         if ((*group)->CountParalogs() > 0)
         {
             groups++;
-            vector<Group*> splitgroups = (*group)->Split5();
+            vector<Group*> splitgroups = (*group)->Disambiguate();
             orphans += (*group)->orphans;
             
             for (auto group2 = splitgroups.begin(); group2 != splitgroups.end(); group2++)
@@ -529,6 +529,73 @@ void Disambiguate(string OUTPUT_FILE, Dataset *dataset)
         printf("%s\t%i\n", orphancontig->first.c_str(), orphancontig->second);
     out.close();
     printf("Disambiguating %i groups took:\t%i seconds\n\n", groups, (int)timer.Elapsed());
+}
+
+void Decluster(string OUTPUT_FILE, Dataset *dataset, double threshold)
+{
+    int groups = 0;
+    Timer timer;
+    timer.Start();
+    printf("Declustering groups into:\t%s\n", OUTPUT_FILE.c_str());
+
+    ofstream out( OUTPUT_FILE, ifstream::out );
+
+    //set<Strain *> orphanstrains;
+    unordered_map<Strain *, int> orphanstrains;
+    unordered_map<string, int> orphancontigs;
+
+    int orphans = 0;
+    int erased = 0;
+
+    Progress p(dataset->groups.size()-1);
+
+    for (auto group = dataset->groups.begin(); group != dataset->groups.end(); group++)
+    {
+        erased += (*group)->genes.size();
+
+        groups++;
+        vector<Group*> splitgroups = (*group)->Decluster(threshold);
+
+        int splitgroupgenes = 0;
+        for (auto group2 = splitgroups.begin(); group2 != splitgroups.end(); group2++)
+        {
+            splitgroupgenes += (*group2)->genes.size();
+            if ((*group2)->genes.size() == 1)
+            {
+                if (orphancontigs.count((*group2)->genes[0]->contig->id))
+                    orphancontigs[(*group2)->genes[0]->contig->id]++;
+                else
+                    orphancontigs[(*group2)->genes[0]->contig->id] = 1;
+                if (orphanstrains.count((*group2)->genes[0]->strain))
+                    orphanstrains[(*group2)->genes[0]->strain]++;
+                else
+                    orphanstrains[(*group2)->genes[0]->strain] = 1;
+
+                continue;
+            }
+            if (splitgroups.size() == 1)
+                out << (*group)->id << ':';
+            else
+                out << (*group2)->id << ':';
+
+            for (auto gene = (*group2)->genes.begin(); gene != (*group2)->genes.end(); gene++)
+                out << ' ' << (*gene)->strain->id << '|' << (*gene)->id;
+            out << '\n';
+        }
+        erased -= splitgroupgenes;
+        p.Update(distance(dataset->groups.begin(), group));
+    }
+    printf("Erased genes %i\n", erased);
+    printf("Orphaned genes %i\n", orphans);
+    printf("Orphaned strains %lu\n", orphanstrains.size());
+
+    for (auto orphanedstrain = orphanstrains.begin(); orphanedstrain != orphanstrains.end(); orphanedstrain++)
+        printf("%s\t%i\n", orphanedstrain->first->id.c_str(), orphanedstrain->second);
+    printf("\n");
+    for (auto orphancontig = orphancontigs.begin(); orphancontig != orphancontigs.end(); orphancontig++)
+        printf("%s\t%i\n", orphancontig->first.c_str(), orphancontig->second);
+    out.close();
+    printf("Declustering %i groups took:\t%i seconds\n\n", groups, (int)timer.Elapsed());
 }
 
 double CalculateAverageParalogSynteny(Dataset *dataset)
@@ -1159,6 +1226,8 @@ int main(int argc, const char * argv[])
         printf("\t--syntenizegroups\n\t\tGenerate synteny score for gene groups.\n\n");
         printf("\t--syntenizegenepairs=file\n\t\tSet the file specifying gene pairs to be syntenized.\n\n");
         printf("\t--disambiguategroups\n\t\tGenerate gene groups devoid of paralogs.\n\n");
+        printf("\t--declustergroups\n\t\tSplit gene groups into subgroups if a collection of genes share a synteny score of 0.\n\n");
+        printf("\t--declustergroups=threshold\n\t\tSplit gene groups into subgroups if a collection of genes share a synteny score below provided threshold.\n\n");
         //printf("\t--presenceabsencematrix\n\t\tGenerate presence/absence matrix based on gene groups.\n\n");
         //printf("\t--gapitpresenceabsencematrix\n\t\tGenerate GAPIT formatted presence/absence matrix based on gene groups.\n\n");
         //printf("\t--generelationmatrix\n\t\tGenerate gene relation matrix based on gene groups.\n\n");
@@ -1202,6 +1271,18 @@ int main(int argc, const char * argv[])
                 settings.generateStrainCharts = true;
             if ((loc = argument.find("--generatesyntenycharts")) != string::npos)
                 settings.generateSyntenyCharts = true;
+            if ((loc = argument.find("--declustergroups")) != string::npos)
+            {
+                if (settings.disambiguateGroups)
+                {
+                    printf("\nError: The declustergroups and disambiguategroups options should not be toggled in the same session. Please toggle each in separate sessions.\n\n");
+                    exit(1);
+                }
+                if ((loc = argument.find("--declustergroups=")) != string::npos)
+                    settings.declusterGroups = atof(argument.substr(argument.find("=")+1).c_str());
+                else
+                    settings.declusterGroups = 0.0f;
+            }
             //if ((loc = argument.find("--presenceabsencematrix")) != string::npos)
                 settings.generatePresenceAbsenceMatrix = true;
             //if ((loc = argument.find("--gapitpresenceabsencematrix")) != string::npos)
@@ -1228,14 +1309,6 @@ int main(int argc, const char * argv[])
 #else
     char delimiter = '/';
 #endif
-    /*
-    if (settings.GFF_DIRECTORY.empty())
-        settings.GFF_DIRECTORY = ".";
-    if (settings.OUTPUT_DIRECTORY.empty())
-        settings.OUTPUT_DIRECTORY = ".";
-    if (settings.SEQUENCE_DIRECTORY.empty())
-        settings.SEQUENCE_DIRECTORY = ".";
-    */
     if (!settings.GFF_DIRECTORY.empty() && settings.GFF_DIRECTORY[settings.GFF_DIRECTORY.size()-1] != delimiter)
         settings.GFF_DIRECTORY += delimiter;
     if (!settings.OUTPUT_DIRECTORY.empty() && settings.OUTPUT_DIRECTORY[settings.OUTPUT_DIRECTORY.size()-1] != delimiter)
@@ -1337,6 +1410,13 @@ int main(int argc, const char * argv[])
                 //printf("Done disambiguating gene groups.\n\n");
             }
 
+            if (settings.declusterGroups > -1)
+            {
+                //printf("Attempting to decluster gene groups:\n");
+                Decluster(settings.OUTPUT_DIRECTORY + "declustered_gene_groups.csv", dataset, settings.declusterGroups);
+                //printf("Done declustering gene groups.\n\n");
+            }
+
             if (settings.generateFNAGroups)
             {
                 //printf("Attempting to generate group fna files:\n");
@@ -1360,4 +1440,3 @@ int main(int argc, const char * argv[])
 
     return 0;
 }
-

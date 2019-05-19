@@ -57,6 +57,7 @@ struct
     bool generateStrainCharts = false;
     bool generateSyntenyCharts = false;
     bool generateFNAGroups = false;
+    double declusterGroups = -1;
     string GROUP_FILE;
     string GROUP_COLOUR_FILE;
     string GENE_PAIR_FILE;

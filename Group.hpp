@@ -18,6 +18,7 @@ class Relation;
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include "Gene.hpp"
 //#include "Needleman-Wunsch.hpp"
 #include "Score.hpp"
@@ -49,6 +50,7 @@ public:
     double SyntenizeAdjusted();
     double SyntenizeTest();
     double SyntenizeFast();
+    double SyntenizeSimpleAgainstGene(Gene *);
     double SyntenizeAgainstGene(Gene *);
     int CountUniqueStrains();
     int CountParalogs();
@@ -58,11 +60,8 @@ public:
     void GenerateSyntenyChart(string);
     void GenerateSyntenyHistogram(string OUTPUT_DIRECTORY );
 
-    vector<Group *> Split();
-    vector<Group *> Split2();
-    vector<Group *> Split3();
-    vector<Group *> Split4();
-    vector<Group *> Split5();
+    vector<Group *> Disambiguate();
+    vector<Group *> Decluster(double threshold = 0);
     Group(void);
     //~Group(void);
     

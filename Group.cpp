@@ -156,6 +156,21 @@ double Group::SyntenizeFast()
     return syntenyScoreFast;
 }
 
+double Group::SyntenizeSimpleAgainstGene(Gene *g1)
+{
+    double count = 0;
+    double scoresum = 0;
+
+    for (auto g2 = genes.begin(); g2 != genes.end(); g2++)
+        if (g1 != *g2)
+        {
+            count++;
+            scoresum += Score::Simple(g1, *g2);
+        }
+
+    return(scoresum / count);
+}
+
 double Group::SyntenizeAgainstGene(Gene *g1)
 {
     double count = 0;
@@ -322,280 +337,95 @@ bool Group::HasStrain(Strain *strain)
     return false;
 }
 
-vector<Group *> Group::Split2()
+vector<Group *> Group::Decluster(double threshold)
 {
     vector<Group *> splitgroups;
-    vector<Gene *> candidates;
-    
-    Gene *candidate = NULL;
-    for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
-    {
-        for (auto g2 = g1+1; g2 != genes.end(); g2++)
-        {
-            double score = Score::Sophisticated(*g1, *g2);
-            (*g1)->score += score;
-            (*g2)->score += score;
-            
-            if (candidate == NULL || candidate->score < (*g1)->score)
-                candidate = *g1;
-
-            if (candidate == NULL || candidate->score < (*g2)->score)
-                candidate = *g2;
-        }
-    }
-    
-    candidate->group = NULL;
-    candidates.push_back(candidate);
-    genes.erase(find(genes.begin(), genes.end(), candidate));
-
-    for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
-    {
-        Gene *bestcandidate = NULL;
-        for (auto g2 = candidates.begin(); g2 != candidates.end(); g2++)
-        {
-            double score;
-            if ((*g2)->group == NULL)
-                score = Score::Sophisticated(*g1, *g2);
-            else
-                score = (*g2)->group->SyntenizeAgainstGene(*g1);
-
-            if (bestcandidate == NULL || bestcandidate->score < score)
-            {
-                bestcandidate = *g2;
-                bestcandidate->score = score;
-            }
-        }
-
-        if (bestcandidate->score < 3)
-        {
-            (*g1)->group = NULL;
-            candidates.push_back(*g1);
-            //genes.erase(g1);
-            continue;
-        }
-
-        if (bestcandidate->group == NULL)
-        {
-            Group *newgroup = new Group;
-            newgroup->id = id + "_split" + to_string(splitgroups.size());
-            bestcandidate->group = newgroup;
-            bestcandidate->group->genes.push_back(bestcandidate);
-            splitgroups.push_back(newgroup);
-        }
-        (*g1)->group = bestcandidate->group;
-        bestcandidate->group->genes.push_back(*g1);
-    }
-
-    for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
-    {
-        printf("%s\t(%lu)\t[%.2f]\t{%i}\n", (*group)->id.c_str(), (*group)->genes.size(), (*group)->SyntenizeSophisticated(), (*group)->CountParalogs());
-
-        printf("\n");
-    }
-    
-    return splitgroups;
-}
-
-vector<Group *> Group::Split3()
-{
-    vector<Group *> splitgroups;
-    vector<Gene *> candidates;
-    vector<Gene *> paralogs;
-    vector<Gene *> orthologs;
-    set<Strain *> strains;
-    set<Strain *> paralogstrains;
-
-    printf("%s [%lu] (%i):", id.c_str(), genes.size(), CountParalogs());
-
-    for (auto gene = genes.begin(); gene != genes.end(); gene++)
-        if (strains.count((*gene)->strain))
-            paralogstrains.insert((*gene)->strain);
-        else
-            strains.insert((*gene)->strain);
-        
-    for (auto gene = genes.begin(); gene != genes.end(); gene++)
-        if (paralogstrains.count((*gene)->strain))
-            paralogs.push_back(*gene);
-        else
-            orthologs.push_back(*gene);
-
-    if (paralogs.size() < 2)
-        printf("!");
-
-    printf(" (%lu)", paralogs.size() );
-    Gene *candidate = NULL;
-    for (auto g1 = paralogs.begin(); g1 != paralogs.end(); g1++)
-    {
-        for (auto g2 = g1+1; g2 != paralogs.end(); g2++)
-        {
-            double score = Score::Sophisticated(*g1, *g2);
-            (*g1)->score += score;
-            (*g2)->score += score;
-            
-            if (candidate == NULL || candidate->score < (*g1)->score)
-                candidate = *g1;
-            
-            if (candidate == NULL || candidate->score < (*g2)->score)
-                candidate = *g2;
-        }
-    }
-
-    candidate->group = new Group;
-    candidate->group->id = id + "_split" + to_string(splitgroups.size());
-    candidate->group->genes.push_back(candidate);
-    splitgroups.push_back(candidate->group);
-    candidates.push_back(candidate);
-    paralogs.erase(find(paralogs.begin(), paralogs.end(), candidate));
-
-    for (auto g1 = paralogs.begin(); g1 != paralogs.end(); g1++)
-    {
-        Gene *bestcandidate = NULL;
-        for (auto g2 = candidates.begin(); g2 != candidates.end(); g2++)
-        {
-            double score = (*g2)->group->SyntenizeAgainstGene(*g1);
-            
-            if (!(*g2)->group->HasStrain((*g1)->strain) && (bestcandidate == NULL || bestcandidate->score < score ))
-            {
-                bestcandidate = *g2;
-                bestcandidate->score = score;
-            }
-        }
-
-        if (bestcandidate == NULL || bestcandidate->score == 0)
-        {
-            (*g1)->group = new Group;
-            (*g1)->group->id = id + "_split" + to_string(splitgroups.size());
-            (*g1)->group->genes.push_back(*g1);
-            splitgroups.push_back((*g1)->group);
-            candidates.push_back(*g1);
-
-            continue;
-        }
-
-        (*g1)->group = bestcandidate->group;
-        bestcandidate->group->genes.push_back(*g1);
-    }
-
-    orphans = 0;
-    printf(" {%lu}", splitgroups.size());
-    for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
-    {
-        //printf("%s (%lu) [%.2f] {%i}:\n", (*group)->id.c_str(), (*group)->genes.size(), (*group)->SyntenizeSophisticated(), (*group)->CountParalogs());
-        if ((*group)->genes.size() > 1)
-            //printf("%s\t%lu\t%.2f\t%i\n", (*group)->id.c_str(), (*group)->genes.size(), (*group)->SyntenizeSophisticated(), (*group)->CountParalogs());
-            printf(" (%lu %.2f)", (*group)->genes.size(), (*group)->SyntenizeSophisticated());
-        else
-        {
-            //printf("orphan\n");
-            orphans++;
-        }
-    }
-    printf(" - %i\n", orphans);
-
-    return splitgroups;
-}
-
-vector<Group *> Group::Split4()
-{
-    vector<Group *> splitgroups;
-    vector<Gene *> candidates;
-    vector<Gene *> paralogs;
-    vector<Gene *> orthologs;
-    set<Strain *> strains;
-    set<Strain *> paralogstrains;
-
-    printf("%s [%lu] (%i):", id.c_str(), genes.size(), CountParalogs());
-
-    for (auto gene = genes.begin(); gene != genes.end(); gene++)
-        if (strains.count((*gene)->strain))
-            paralogstrains.insert((*gene)->strain);
-        else
-            strains.insert((*gene)->strain);
-
-    for (auto gene = genes.begin(); gene != genes.end(); gene++)
-        if (paralogstrains.count((*gene)->strain))
-            paralogs.push_back(*gene);
-        else
-            orthologs.push_back(*gene);
-
-    printf(" (%lu)", paralogs.size() );
 
     do
     {
-        Gene *candidate = NULL;
-        for (auto g1 = paralogs.begin(); g1 != paralogs.end(); g1++)
+        for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
+            (*g1)->score = 0;
+        
+        for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
         {
-            for (auto g2 = g1+1; g2 != paralogs.end(); g2++)
+            for (auto g2 = g1+1; g2 != genes.end(); g2++)
             {
                 double score = Score::Sophisticated(*g1, *g2);
-                //double score = Score::Simple(*g1, *g2);
+//                double score = Score::Simple(*g1, *g2);
+
                 (*g1)->score += score;
                 (*g2)->score += score;
-                
-                if (candidate == NULL || candidate->score < (*g1)->score)
-                    candidate = *g1;
-                
-                if (candidate == NULL || candidate->score < (*g2)->score)
-                    candidate = *g2;
             }
         }
+
+        vector<Gene *> erase;
+        Gene *bestcandidate = NULL;
+        double bestscore = 0;
+        for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
+        {
+            if ((*g1)->score == 0)
+            {
+                (*g1)->group = NULL;
+                erase.push_back(*g1);
+            }
+            if ((*g1)->score > bestscore)
+            {
+                bestscore = (*g1)->score;
+                bestcandidate = *g1;
+            }
+        }
+
+        for (auto gene = erase.begin(); gene != erase.end(); gene++)
+            genes.erase(find(genes.begin(), genes.end(), *gene));
+
+        if (bestscore == 0)
+            return splitgroups;
+
+        genes.erase(find(genes.begin(), genes.end(), bestcandidate));
         
-        if (paralogs.size() == 1)
-            candidate = paralogs[0];
-        
-        candidate->group = new Group;
-        candidate->group->id = id + "_split" + to_string(splitgroups.size());
-        candidate->group->genes.push_back(candidate);
-        splitgroups.push_back(candidate->group);
-        candidates.push_back(candidate);
-        paralogs.erase(find(paralogs.begin(), paralogs.end(), candidate));
-        
-        bool restart;
+        Group *newgroup = new Group;
+//        newgroup->id = id;
+//        if (splitgroups.size() > 0)
+//            newgroup->id += "_split" + to_string(splitgroups.size());
+        newgroup->id = id + "_split" + to_string(splitgroups.size()+1);
+
+        bestcandidate->group = newgroup;
+        bestcandidate->group->genes.push_back(bestcandidate);
+        splitgroups.push_back(newgroup);
+
+        bool inserted;
         do
         {
-            restart = false;
-            for (auto g1 = paralogs.begin(); g1 != paralogs.end(); g1++)
+            inserted = false;
+            Gene *bestcandidate = NULL;
+            double bestscore = 0;
+            for (auto g1 = genes.begin(); g1 != genes.end(); g1++)
             {
-                if (!candidate->group->HasStrain((*g1)->strain) && candidate->group->SyntenizeAgainstGene(*g1) > 0 )
+                double score = newgroup->SyntenizeAgainstGene(*g1);
+//                double score = newgroup->SyntenizeSimpleAgainstGene(*g1);
+                if (score > bestscore)
                 {
-                    candidate->group->genes.push_back(*g1);
-                    paralogs.erase(g1);
-                    restart = true;
-                    break;
+                    bestscore = score;
+                    bestcandidate = *g1;
                 }
             }
+
+            if (bestscore > threshold)
+            {
+                inserted = true;
+                bestcandidate->group = newgroup;
+                newgroup->genes.push_back(bestcandidate);
+                genes.erase(find(genes.begin(), genes.end(), bestcandidate));
+            }
         }
-        while(restart);
+        while (inserted);
     }
-    while (paralogs.size() > 0);
+    while (genes.size() > 0);
 
-    Group *largestgroup = NULL;
-    for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
-        if (largestgroup == NULL || (*group)->genes.size() > largestgroup->genes.size())
-            largestgroup = *group;
-        else if ((*group)->genes.size() == largestgroup->genes.size())
-            largestgroup = (*group)->SyntenizeSophisticated() > largestgroup->SyntenizeSophisticated() ? *group : largestgroup;
-
-    largestgroup->genes.insert(largestgroup->genes.end(), orthologs.begin(), orthologs.begin());
-
-    orphans = 0;
-    printf(" {%lu}", splitgroups.size());
-    for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
-    {
-        if ((*group)->genes.size() > 1)
-            printf(" (%lu %.2f)", (*group)->genes.size(), (*group)->SyntenizeSophisticated());
-            //printf(" (%lu %.2f)", (*group)->genes.size(), (*group)->SyntenizeSimple());
-        else
-        {
-            orphans++;
-        }
-    }
-    printf(" - %i\n", orphans);
-    
     return splitgroups;
 }
 
-vector<Group *> Group::Split5()
+vector<Group *> Group::Disambiguate()
 {
     vector<Group *> splitgroups;
     vector<Gene *> candidates;
@@ -605,55 +435,78 @@ vector<Group *> Group::Split5()
     set<Strain *> paralogstrains;
     Group *orthologs = new Group;
 
+    vector<double> orthologscores;
+    vector<double> paralogscores;
+
     //printf("%s [%lu] (%i):", id.c_str(), genes.size(), CountParalogs());
     //printf("%s:", id.c_str());
     //size_t loc;
     //if ((loc = id.find(' ')) != string::npos)
     //    id.erase(id.begin()+loc,id.end());
 
-    printf("%s\t%lu\t%.2f\t%i", id.c_str(), genes.size(), SyntenizeSophisticated(), CountParalogs());
+    printf("%s\t%lu\t%.2f\t%i\t", id.c_str(), genes.size(), SyntenizeSophisticated(), CountParalogs());
 
     orthologs->id = id;
     splitgroups.push_back(orthologs);
 
+    //Make two groups, one of only strains that have a single gene in the group (orthologs), and one with more than one gene (paralogs)
     for (auto gene = genes.begin(); gene != genes.end(); gene++)
         if (strains.count((*gene)->strain))
             paralogstrains.insert((*gene)->strain);
         else
             strains.insert((*gene)->strain);
-    
+
     for (auto gene = genes.begin(); gene != genes.end(); gene++)
         if (paralogstrains.count((*gene)->strain))
             paralogs.push_back(*gene);
         else
             orthologs->genes.push_back(*gene);
 
-    //printf(" (%lu)", paralogs.size() );
-
-    Gene *bestcandidate;
-    do
+    if (orthologs->genes.size() > 0)
     {
-        bestcandidate = NULL;
-        for (auto gene = paralogs.begin(); gene != paralogs.end(); gene++)
+        for (auto strain = paralogstrains.begin(); strain != paralogstrains.end(); strain++)
         {
-            if (orthologs->HasStrain((*gene)->strain))
-                continue;
+            Gene *bestcandidate = NULL;
+            Gene *nextbestcandidate = NULL;
+            for (auto gene = paralogs.begin(); gene != paralogs.end(); gene++)
+            {
+                if ((*gene)->strain != *strain)
+                    continue;
 
-            (*gene)->score = orthologs->SyntenizeAgainstGene(*gene);
-            if (bestcandidate == NULL || (*gene)->score > bestcandidate->score)
-                bestcandidate = *gene;
-        }
+                (*gene)->score = orthologs->SyntenizeAgainstGene(*gene);
 
-        if (bestcandidate != NULL)
-        {
+                paralogscores.push_back( (*gene)->score);
+
+                if (bestcandidate == NULL || (*gene)->score > bestcandidate->score)
+                {
+                    if (bestcandidate != NULL)
+                        nextbestcandidate = bestcandidate;
+                    bestcandidate = *gene;
+                }
+            }
+
+            if (bestcandidate == NULL)
+            {
+                printf("Error!\n");
+                exit(1);
+            }
+
+            if (nextbestcandidate != NULL && bestcandidate->score == nextbestcandidate->score)
+            {
+                printf("double jeopardy\n!");
+            }
+
+            orthologscores.push_back(bestcandidate->score);
+            paralogscores.erase(find(paralogscores.begin(), paralogscores.end(), bestcandidate->score));
+
             orthologs->genes.push_back(bestcandidate);
             paralogs.erase(find(paralogs.begin(), paralogs.end(), bestcandidate));
         }
     }
-    while(bestcandidate != NULL);
 
     do
     {
+        // Find the paralog with the highest average synteny with other paralogs and form a group around it.
         Gene *candidate = NULL;
         for (auto g1 = paralogs.begin(); g1 != paralogs.end(); g1++)
         {
@@ -663,7 +516,7 @@ vector<Group *> Group::Split5()
                 //double score = Score::Simple(*g1, *g2);
                 (*g1)->score += score;
                 (*g2)->score += score;
-                
+
                 if (candidate == NULL || candidate->score < (*g1)->score)
                     candidate = *g1;
 
@@ -675,13 +528,22 @@ vector<Group *> Group::Split5()
         if (paralogs.size() == 1)
             candidate = paralogs[0];
 
-        candidate->group = new Group;
-        candidate->group->id = id + "-" + to_string(splitgroups.size()+1);
-        candidate->group->genes.push_back(candidate);
-        splitgroups.push_back(candidate->group);
+        if (orthologs->genes.size() > 0)
+        {
+            candidate->group = new Group;
+            candidate->group->id = id + "-" + to_string(splitgroups.size()+1);
+            candidate->group->genes.push_back(candidate);
+            splitgroups.push_back(candidate->group);
+        }
+        else
+        {
+            orthologs->genes.push_back(candidate);
+            candidate->group = orthologs;
+        }
         candidates.push_back(candidate);
         paralogs.erase(find(paralogs.begin(), paralogs.end(), candidate));
 
+        // Put any gene scoring above 0 synteny into the newly formed group
         bool restart;
         do
         {
@@ -690,19 +552,24 @@ vector<Group *> Group::Split5()
             {
                 if (!candidate->group->HasStrain((*g1)->strain) && candidate->group->SyntenizeAgainstGene(*g1) > 0 )
                 {
+                    orthologscores.push_back(candidate->group->SyntenizeAgainstGene(*g1));
                     candidate->group->genes.push_back(*g1);
                     paralogs.erase(g1);
                     restart = true;
                     break;
                 }
+                else if (candidate->group->HasStrain((*g1)->strain))
+                    paralogscores.push_back(candidate->group->SyntenizeAgainstGene(*g1));
             }
         }
         while(restart);
+
+        // Repeat until no paralogs remain
     }
     while (paralogs.size() > 0);
 
+    //Take all single gene groups and try to make them part of the largest of the new groups that does not have a gene of the same strain in it.
     vector<Gene *> orphans;
-
     for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
     {
         if ((*group)->genes.size() == 1)
@@ -723,7 +590,7 @@ vector<Group *> Group::Split5()
             if (bestgroup == NULL || (*group)->genes.size() > bestgroup->genes.size())
                 bestgroup = *group;
         }
-        
+
         if (bestgroup != NULL)
         {
             bestgroup->genes.push_back(*gene);
@@ -732,58 +599,31 @@ vector<Group *> Group::Split5()
             splitgroups.erase(find(splitgroups.begin(), splitgroups.end(), (*gene)->group));
         }
     }
-    
+
     this->orphans = 0;
+    for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
+        if ((*group)->genes.size() <= 1)
+            this->orphans++;
+    /**/
     printf("\t%lu\t", splitgroups.size());
     for (auto group = splitgroups.begin(); group != splitgroups.end(); group++)
         if ((*group)->genes.size() > 1)
-            //int nop;
-            printf("{%lu %.2f} ", (*group)->genes.size(), (*group)->SyntenizeSophisticated());
+            printf("%lu\t%.2f\t", (*group)->genes.size(), (*group)->SyntenizeSophisticated());
         else
         {
             this->orphans++;
-            //printf("\t%s\t%lu", (*group)->genes[0]->strain->id_alt.c_str(), (*group)->genes[0]->contig->genes.size());
-            printf("\t%s\t%.2f", (*group)->genes[0]->strain->id.c_str(), orthologs->SyntenizeAgainstGene((*group)->genes[0]));
+//            printf("\t%s\t%.2f", (*group)->genes[0]->strain->id.c_str(), orthologs->SyntenizeAgainstGene((*group)->genes[0]));
         }
-
+    /**/
     this->orphans = orphans.size() - unorphaned;
-    //printf(" - %d\n", this->orphans);
+    /*
+    printf("%lu\t%f\t%lu\t%f\n",
+           orthologscores.size(),
+           accumulate(orthologscores.begin(), orthologscores.end(), 1.0f)/(double)orthologscores.size(),
+           paralogscores.size(),
+           accumulate(paralogscores.begin(), paralogscores.end(), 1.0f)/(double)paralogscores.size());
+     */
     printf("\n");
-    return splitgroups;
-}
-
-vector<Group *> Group::Split()
-{
-    vector<Group *> splitgroups;
-    int pure_paralog_groups = 0;
-    int unambiguous_groups = 0;
-    int ambiguous_groups = 0;
-    int split_groups = 0;
-    
-    bool has_paralogs = false;
-    unordered_map<Strain *, vector<Gene*>*> strains;
-    
-    for (auto g1 = this->genes.begin(); g1 != this->genes.end(); g1++)
-    {
-        //vector<Gene*> pruned;
-        Gene *bestparalog = NULL;
-        if ((*g1)->paralog)
-        {
-            (*g1)->score = 0;
-            for (auto g2 = this->genes.begin(); g2 != this->genes.end(); g2++)
-                if ((*g1) != (*g2))
-                    (*g1)->score += Score::Sophisticated(*g1, *g2);
-            (*g1)->score /= double(this->genes.size()-1);
-            if ((*g1)->score == 0)
-                this->genes.erase(g1);
-            else
-            {
-                if (bestparalog == NULL || (*g1)->score > bestparalog->score)
-                    bestparalog = *g1;
-            }
-        }
-    }
-
     return splitgroups;
 }
 
