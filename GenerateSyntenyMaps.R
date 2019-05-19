@@ -20,9 +20,18 @@ if (length(args)!=1)
       map = read.csv(file = filename, dec=",", sep=";", header=T, check.names = F)
       strains = colnames(map)
       
-      pdf(paste(groups[group], "_synteny_chart.pdf", sep=""), width=15, height=15)
-      par(las=2, cex=0.5, lwd=0.25)
-      parcoord(map, lty = 1, main=groups[group], col= c("#00000000", "#00000000", "black", sample(rainbow(nrow(map)-3))))
+      pdf(paste(groups[group], "_synteny_chart.pdf", sep=""), width=40, height=20)
+      
+      par(mar=c(10,7,0,0))
+      par(las=2, cex=1.2, lwd=1.0)
+      parcoord(map, lty = 1, main="", col= c("#00000000", "#00000000", "black", sample(rainbow(nrow(map)-3))), lwd=3)
+      axis(2, at=seq(0,1, 1/42), labels=c("Upstream", seq(-20,-1,1 ), "GENE GROUP", paste(paste0("+", as.character(seq(1,20,1 )))) ,"Downstream"))
+
+      #par(mar=c(10,7,0,0))
+      #par(las=2, cex=0.5, lwd=0.25)
+      #parcoord(map, lty = 1, main="", col= c("#00000000", "#00000000", "black", sample(rainbow(nrow(map)-3))))
+      #axis(2, at=seq(0,1, 1/42), labels=c("Upstream", seq(-20,-1,1 ), "GENE GROUP", paste(paste0("+", as.character(seq(1,20,1 )))) ,"Downstream"))
+      
       dev.off()
       file.remove(filename)
       
