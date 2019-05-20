@@ -1,6 +1,8 @@
 # Syntenizer3000
 Tool for bacterial genome analysis including but not limited to synteny measurement.
 
+Sample dataset is available for download here: https://drive.google.com/file/d/1bya1aOoxALuTqhLe_8zwT881Qzz0iq8M/view?usp=sharing
+
 Run build.sh in the folder with the source code to build an executable on a UNIX derived OS. GCC with at least C++11 support or equivalent must be installed.
 
 Run without any input parameters to get a list of possible arguments and a short explanation of what they do.
